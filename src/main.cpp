@@ -350,6 +350,8 @@ void testanimate(const uint8_t *bitmap, uint8_t w, uint8_t h) {
   }
 }
 
+void readEncoder();
+void swClick();
 
 void setup() {
   Serial.begin(9600);
@@ -359,7 +361,7 @@ void setup() {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
-
+/*
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
   display.display();
@@ -413,7 +415,138 @@ void setup() {
   delay(1000);
 
   testanimate(logo_bmp, LOGO_WIDTH, LOGO_HEIGHT); // Animate bitmaps
+
+*/
+  #define CLK 2
+  #define DT 3
+  pinMode(CLK, INPUT);
+  pinMode(DT, INPUT);
+
+  attachInterrupt(0, readEncoder, CHANGE);
+  attachInterrupt(1, swClick, CHANGE);
+
+  //set timer2 interrupt at 1kHz
+  cli();
+  TCCR2A = 0;  // set entire TCCR2A register to 0
+  TCCR2B = 0;  // same for TCCR2B
+  TCNT2  = 0;  //initialize counter value to 0
+  OCR2A = 249;  // = (16*10^6) / (64*1000) - 1 (must be <256)
+  TCCR2A |= (1 << WGM21);  // turn on CTC mode
+  TCCR2B |= (1 << CS22);
+  TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+  sei();
+
+  display.drawFastVLine(display.width() / 2, 0, 32, WHITE);
+  display.display();
 }
 
+// =============== ISR ===============
+volatile uint16_t ms = 0;
+volatile uint8_t  s = 0;
+volatile uint8_t  m = 0;
+ISR(TIMER2_COMPA_vect) {
+  ms++;
+  if(ms>=1000) {
+    ms = 0;  s++;
+  }
+  if(s >= 60) {
+    s = 0;  m++;
+  }
+}
+// =============== ISR end ===============
+
+// =============== ISR ===============
+volatile byte lastClk = -1;
+volatile unsigned int count = 0;
+void readEncoder() {  // ISR
+  byte clk = PIND&(1<<2) ? HIGH : LOW;  // read the D2(CLK) pin
+  byte dt = PIND&(1<<4) ? HIGH : LOW;  // read the D4(DT) pin
+  if(lastClk != clk && clk == HIGH) {
+      if(clk != dt) {
+        count++;
+      }else {
+        count--;
+      }
+  }
+  lastClk = clk;
+}
+// =============== ISR end ===============
+
+// =============== ISR ===============
+volatile byte lastSw = -1;
+volatile bool clicked = 0;
+volatile unsigned int clickCount = 0;
+// note: do NOT debounce in ISR, it would be not predictable
+void swClick() {  // ISR
+  byte sw = PIND&(1<<3) ? HIGH : LOW;  // read the D3
+  if(lastSw != sw && sw == HIGH) {
+      clicked = true;
+      clickCount++;  // for debug
+  }
+  lastSw = sw;
+}
+// =============== ISR end ===============
+
+unsigned long current = 0;
+unsigned long lastTime = 0;
+unsigned long deltaTime = 0;
+bool pause = 0;
+bool invert = false;
+int nButtons = 5;
 void loop() {
+  display.clearDisplay();
+
+  display.drawFastVLine(display.width()/2 + count, 0, 32, WHITE);
+
+  int margin = 2;
+  int w = display.width() / nButtons - margin;
+  for(int i = 0; i < nButtons; i++) {
+    if(abs(count)%nButtons == i) {
+      display.fillRoundRect(margin*(i+1) + w*i, display.height()/2 - w/2, w, w, 5, WHITE);
+    }else {
+      display.drawRoundRect(margin*(i+1) + w*i, display.height()/2 - w/2, w, w, 5, WHITE);
+    }
+  }
+
+  if(clicked) {
+    clicked = 0;
+    current = millis();
+    if(true || current - lastTime > 200) {  // no debounce now
+      cli();
+      if(pause) {
+        // go
+        ms = 0;  s = 0; m = 0;
+        TCNT2  = 0;  // set counter value to 0
+        TCCR2B |= (1 << CS22);
+        TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+      }else {
+        // stop
+        TCCR2B &= ~(1 << CS22);
+        TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
+      }
+      pause = !pause;
+      sei();
+    }
+    deltaTime = current - lastTime;  // for debug
+    lastTime = current;
+  }
+
+  display.invertDisplay(pause);
+  
+  display.clearDisplay();
+
+  display.drawFastVLine((clickCount%display.width()), 0, 32, WHITE);
+
+  display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"  "18,24"
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(5+count, 8);
+  display.println(String(m) + ":" + String(s) + ":" + String(ms));
+
+  display.setTextSize(1); // Draw 2X-scale text // 6,8 "12,16"  "18,24"
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(2, 1);
+  display.print(String(deltaTime));
+  
+  display.display();
+  delay(10);
 }
