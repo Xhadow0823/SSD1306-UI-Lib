@@ -474,11 +474,12 @@ void readEncoder() {  // ISR
 
 // =============== ISR ===============
 volatile byte lastSw = -1;
+volatile byte sw = HIGH;
 volatile bool clicked = 0;
 volatile unsigned int clickCount = 0;
 // note: do NOT debounce in ISR, it would be not predictable
 void swClick() {  // ISR
-  byte sw = PIND&(1<<3) ? HIGH : LOW;  // read the D3
+  sw = PIND&(1<<3) ? HIGH : LOW;  // read the D3
   if(lastSw != sw && sw == HIGH) {
       clicked = true;
       clickCount++;  // for debug
@@ -493,6 +494,11 @@ unsigned long deltaTime = 0;
 bool pause = 0;
 bool invert = false;
 int nButtons = 5;
+
+bool swHold = false;
+bool lastSwHold = false;
+unsigned long swHoldStartTime = 0;
+unsigned int swHoldCount = 0;  // for debug
 void loop() {
   display.clearDisplay();
 
@@ -527,7 +533,7 @@ void loop() {
       pause = !pause;
       sei();
     }
-    deltaTime = current - lastTime;  // for debug
+    // deltaTime = current - lastTime;  // for debug
     lastTime = current;
   }
 
@@ -535,7 +541,20 @@ void loop() {
   
   display.clearDisplay();
 
-  display.drawFastVLine((clickCount%display.width()), 0, 32, WHITE);
+  if(!clicked && sw == LOW) {
+    if(!swHold) {
+      swHoldStartTime = millis();
+    }
+    swHold = true;
+    swHoldCount++;
+  }else if(swHold){  // end of sw hold
+    swHold = false;
+    unsigned long swHoldEndTime = millis();
+    deltaTime = swHoldEndTime - swHoldStartTime;
+  }
+
+  
+  display.drawFastVLine((swHoldCount%display.width()), 0, 32, WHITE);
 
   display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"  "18,24"
   display.setTextColor(SSD1306_WHITE);
