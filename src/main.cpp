@@ -23,7 +23,8 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-// #include <agents.h>
+#include <ISRs.h>
+#include <agents.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -456,39 +457,6 @@ ISR(TIMER2_COMPA_vect) {
 }
 // =============== ISR end ===============
 
-// =============== ISR ===============
-volatile byte lastClk = -1;
-volatile unsigned int count = 0;
-void readEncoder() {  // ISR
-  byte clk = PIND&(1<<2) ? HIGH : LOW;  // read the D2(CLK) pin
-  byte dt = PIND&(1<<4) ? HIGH : LOW;  // read the D4(DT) pin
-  if(lastClk != clk && clk == HIGH) {
-      if(clk != dt) {
-        count++;
-      }else {
-        count--;
-      }
-  }
-  lastClk = clk;
-}
-// =============== ISR end ===============
-
-// =============== ISR ===============
-volatile byte lastSw = -1;
-volatile byte sw = HIGH;
-volatile bool clicked = 0;
-volatile unsigned int clickCount = 0;
-// note: do NOT debounce in ISR, it would be not predictable
-void swClick() {  // ISR
-  sw = PIND&(1<<3) ? HIGH : LOW;  // read the D3
-  if(lastSw != sw && sw == HIGH) {
-      clicked = true;
-      clickCount++;  // for debug
-  }
-  lastSw = sw;
-}
-// =============== ISR end ===============
-
 unsigned long current = 0;
 unsigned long lastTime = 0;
 unsigned long deltaTime = 0;
@@ -496,53 +464,6 @@ bool pause = 0;
 bool invert = false;
 int nButtons = 5;
 
-class __SWAgent {
-private:
-  bool __clicked = false;
-  unsigned long __longPressStartTime = 0;
-  unsigned long __longPressDeltaTime = 0;
-  bool __isHolding = false;
-public:
-  void update() {
-    if(clicked) {
-      clicked = false;  // clear ISR buffer  // TODO: change variable name of all ISRs
-      __clicked = true;
-      __isHolding = false;
-    }else if(sw == LOW){
-      if(__isHolding) {
-        __longPressDeltaTime = millis() - __longPressStartTime;
-      }else {
-        __longPressStartTime = millis();
-        __longPressDeltaTime = 0;
-        __isHolding = true;
-      }
-    }
-  }
-  inline bool isClicked() {
-      return __clicked;
-  }
-  inline bool isHolding() {
-    return __isHolding;
-  }
-  inline unsigned long getLongPressDeltaTime() {  // TODO: get better name, maybe
-    return __longPressDeltaTime;
-  }
-  inline void clearClicked() {
-      __clicked = false;
-  }
-} SWAgent;
-
-class __RotaryEncoderAgent {
-private:
-    long* __target = nullptr;
-public:
-    inline void attachProxyTarget(long* target) {
-        __target = target;
-    }
-    inline void deattachProxyTarget() {
-        __target = nullptr;
-    }
-} REAgent;
 
 bool swHold = false;
 bool lastSwHold = false;
