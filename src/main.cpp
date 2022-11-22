@@ -25,6 +25,7 @@
 #include <Adafruit_SSD1306.h>
 #include <ISRs.h>
 #include <agents.h>
+#include <multiApp.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -355,6 +356,8 @@ void testanimate(const uint8_t *bitmap, uint8_t w, uint8_t h) {
 void readEncoder();
 void swClick();
 
+Demo0 demo0(display);
+
 void setup() {
   Serial.begin(9600);
 
@@ -440,29 +443,20 @@ void setup() {
 
   display.drawFastVLine(display.width() / 2, 0, 32, WHITE);
   display.display();
+
+  
 }
 
-// =============== ISR ===============
-volatile uint16_t ms = 0;
-volatile uint8_t  s = 0;
-volatile uint8_t  m = 0;
-ISR(TIMER2_COMPA_vect) {
-  ms++;
-  if(ms>=1000) {
-    ms = 0;  s++;
-  }
-  if(s >= 60) {
-    s = 0;  m++;
-  }
-}
-// =============== ISR end ===============
+
 
 unsigned long current = 0;
 unsigned long lastTime = 0;
 unsigned long deltaTime = 0;
-bool pause = 0;
+
 bool invert = false;
 int nButtons = 5;
+
+
 
 
 bool swHold = false;
@@ -475,47 +469,12 @@ void loop() {
 
   display.clearDisplay();
 
-
-  if(SWAgent.isClicked() && SWAgent.getLongPressDeltaTime() < 3000) {
-    cli();
-    if(pause) {
-      // go
-      ms = 0;  s = 0; m = 0;
-      TCNT2  = 0;  // set counter value to 0
-      TCCR2B |= (1 << CS22);
-      TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
-    }else {
-      // stop
-      TCCR2B &= ~(1 << CS22);
-      TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
-    }
-    pause = !pause;
-    sei();
-  }
-  display.invertDisplay(pause);
-
-
   
-  // display.drawFastVLine((swHoldCount%display.width()), 0, 32, WHITE);
 
-  display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"  "18,24"
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(5+count, 8);
-  display.println(String(m) + ":" + String(s) + ":" + String(ms));
-
-  if(SWAgent.isHolding()) {
-    display.setTextSize(1); // Draw 2X-scale text // 6,8 "12,16"  "18,24"
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(2, 1);
-    display.print(String(SWAgent.getLongPressDeltaTime()));
-    display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, 28, 5, WHITE);
-  }
+  demo0.loop();
+  
   
   display.display();
 
-  SWAgent.clearClicked();
   delay(10);
 }
-
-
-    

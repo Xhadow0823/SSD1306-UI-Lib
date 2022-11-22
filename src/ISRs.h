@@ -2,7 +2,7 @@
     #define __ISRs_H__
 #include <Arduino.h>
 
-// TODO: change all ISR name and its variables
+// TODO: change all ISR name and its variables !!!!!!!!
 volatile byte lastSw = -1;
 volatile byte sw = HIGH;
 volatile bool clicked = 0;
@@ -31,5 +31,21 @@ void readEncoder() {  // ISR
   }
   lastClk = clk;
 }
+
+// =============== Timer ISR ===============
+volatile uint16_t ms = 0;
+volatile uint8_t  s = 0;
+volatile uint8_t  m = 0;
+ISR(TIMER2_COMPA_vect) {
+  ms++;
+  if(ms>=1000) {
+    ms = 0;  s++;
+  }
+  if(s >= 60) {
+    s = 0;  m++;
+  }
+}
+// =============== Timer ISR end ===============
+
 
 #endif
