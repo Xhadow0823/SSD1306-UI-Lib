@@ -356,7 +356,8 @@ void testanimate(const uint8_t *bitmap, uint8_t w, uint8_t h) {
 void readEncoder();
 void swClick();
 
-Demo0 demo0(display);
+// Demo0 demo0(display);
+Dice demo0(display);
 
 void setup() {
   Serial.begin(9600);

@@ -19,37 +19,113 @@ public:
 };
 
 
-
 class Dice : AppInterface {
 private:
     const char* name = "Dice";
-    const uint8_t rollingTime = 1;  // s
-    uint16_t nCategory = 6;
-    bool startOffset = 1;  // e.g. number mode, nCate = 6, startOffset = 1  => 1, 2, 3, 4, 5, 6
+    Adafruit_SSD1306& display;
 
+    const unsigned long rollingPeriod = 1000;  // ms
+    // uint16_t nCategory = 6;
+    uint16_t nCategory = 256;
+    // int startOffset = 1;  // e.g. number mode, nCate = 6, startOffset = 1  => 1, 2, 3, 4, 5, 6
+    int startOffset = 0;  // e.g. number mode, nCate = 6, startOffset = 1  => 1, 2, 3, 4, 5, 6
+
+    union RandomShit{
+      long number;
+      int16_t ascii;
+      char alphabet;
+      double doubleNumber;
+    } randomShit;
+
+    #define autoSetRandomShit(x) \
+      switch(diceMode){ \
+        case DiceMode::number:\
+          randomShit.number = x;\
+          break;\
+        case DiceMode::ascii:\
+          randomShit.ascii = x;\
+          break;\
+        case DiceMode::alphabet:\
+          randomShit.alphabet = x;\
+          break;\
+        case DiceMode::doubleNumber:\
+          randomShit.doubleNumber = x;\
+          break;\
+      }\
+
+    #define autoGetRandomShit() \
+      diceMode==DiceMode::number? randomShit.number : (\
+        diceMode==DiceMode::ascii? randomShit.ascii : (\
+          diceMode==DiceMode::alphabet? randomShit.alphabet : (\
+            randomShit.doubleNumber))) \
+
+    unsigned long rollingStartTime = 0;
+    
     enum DiceMode {
         number, alphabet, ascii, doubleNumber
     };
-    DiceMode diceMode = DiceMode::number;
+    DiceMode diceMode = DiceMode::ascii;
 
     enum Mode {
         setting, standBy, rolling
     };
     Mode mode = Mode::standBy;
 public:
-    Dice() { }
+    Dice(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
     void setup() {
 
     }
     void loop() {
+      if(SWAgent.isHolding()){
+      // if(SWAgent.isClicked()){
+        rollingStartTime = millis();
+        mode = Mode::rolling;
+      }
+      if(mode == Mode::rolling) {
+        // randomShit = random()%nCategory + startOffset;
+        autoSetRandomShit(random()%nCategory + startOffset);
+        display.fillRect(1, 2, 5, 5, WHITE);
+        if(millis() - rollingStartTime >= rollingPeriod) {
+          mode = Mode::standBy;
+        }
+      }
+      if(mode == Mode::standBy) {
+        // do nothing
+      }
 
+      display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(display.width()/2-6, display.height()/2-8);
+      switch(diceMode){
+        case DiceMode::number:
+          display.println(autoGetRandomShit());
+          break;
+        case DiceMode::ascii:
+          display.drawRect(0, 0, 5, 5, WHITE);
+          display.setTextSize(1);
+          display.setCursor(7, 0);
+          display.println(String(randomShit.ascii));
+
+          display.setTextSize(2);
+          display.setCursor(display.width()/2-6, display.height()/2-8);
+          display.cp437(true); 
+          display.write( randomShit.ascii=='\n'? ' ' : randomShit.ascii );
+          break;
+        case DiceMode::alphabet:
+          display.println(autoGetRandomShit());
+          break;
+        case DiceMode::doubleNumber:
+          display.println(autoGetRandomShit());
+          break;
+      }
+      // display.println(autoGetRandomShit());
     }
     void openMenu() {
 
     }
 };
 
-// TODO: move to multiApp.h and set display reference in constructor
+
 class Demo0: AppInterface {
 private:
     const char* __name = "DEMO0";
