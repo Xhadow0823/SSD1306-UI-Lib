@@ -5,10 +5,10 @@
 #include <agents.h>
 
 class AppInterface {
-private:
+protected:
     const char* __name = nullptr;
     bool __exit = false;
-    Adafruit_SSD1306* __display = nullptr;
+    // Adafruit_SSD1306& display;
 public:
     AppInterface() { }
 
@@ -18,6 +18,33 @@ public:
     virtual inline void exit() { __exit = true; }
 };
 
+class __UIHelper: AppInterface {
+private:
+  // Adafruit_SSD1306& display;
+  long cursor = 0;
+public:
+  // __UIHelper(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
+  void openMenu(Adafruit_SSD1306& display) {
+    REAgent.attachProxyTarget(&cursor);
+
+    const int margin = 2;
+    display.drawRect(margin, margin, display.width()-2*margin, display.height()-2*margin, WHITE);
+    const int nItems = 5;
+    const int buttonHeight=5;
+    const int buttonMargin = (display.height()-2*margin-nItems*buttonHeight) / nItems;
+    for(int i = 0; i < nItems; i++) {
+      if((cursor%nItems) == i) {
+        display.fillRoundRect(margin, margin + buttonMargin*(i+1) + buttonHeight*i, 25, buttonHeight, 3, WHITE);
+      }else {
+        display.drawRoundRect(margin, margin + buttonMargin*(i+1) + buttonHeight*i, 25, buttonHeight, 3, WHITE);
+      }
+    }
+  }
+
+  void clickOnMenu() {
+    // set the function of menu item
+  }
+} UIHelper;
 
 class Dice : AppInterface {
 private:
@@ -29,6 +56,8 @@ private:
     uint16_t nCategory = 256;
     // int startOffset = 1;  // e.g. number mode, nCate = 6, startOffset = 1  => 1, 2, 3, 4, 5, 6
     int startOffset = 0;  // e.g. number mode, nCate = 6, startOffset = 1  => 1, 2, 3, 4, 5, 6
+
+    long __xOffset = 0;
 
     union RandomShit{
       long number;
@@ -64,7 +93,7 @@ private:
     enum DiceMode {
         number, alphabet, ascii, doubleNumber
     };
-    DiceMode diceMode = DiceMode::doubleNumber;
+    DiceMode diceMode = DiceMode::ascii;
 
     enum Mode {
         setting, standBy, rolling
@@ -73,12 +102,21 @@ private:
 public:
     Dice(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
     void setup() {
-
+      REAgent.attachProxyTarget(&__xOffset);
     }
     void loop() {
-      if(SWAgent.isClicked()){
-        rollingStartTime = millis();
-        mode = Mode::rolling;
+      if(SWAgent.getLongPressDeltaTime() > 1000) {
+        mode = Mode::setting;
+      }
+      else if(SWAgent.isClicked()){
+        if(mode == Mode::setting){ 
+          UIHelper.clickOnMenu();
+          mode = Mode::standBy;
+          REAgent.attachProxyTarget(&__xOffset);
+        }else {
+          rollingStartTime = millis();
+          mode = Mode::rolling;
+        }
       }
       if(mode == Mode::rolling) {
         generateRandomShit();
@@ -103,12 +141,12 @@ public:
           display.drawRect(0, 0, 5, 5, WHITE);
           display.setTextSize(1);
           display.setCursor(7, 0);
-          display.println(String(randomShit.ascii));
+          display.println(String(randomShit.ascii+__xOffset));
 
           display.setTextSize(2);
-          display.setCursor(display.width()/2-6, display.height()/2-8);
+          display.setCursor((display.width()/2-6 + __xOffset)%(128-11), display.height()/2-8);
           display.cp437(true); 
-          display.write( randomShit.ascii=='\n'? ' ' : randomShit.ascii );
+          display.write( randomShit.ascii+__xOffset=='\n'? ' ' : randomShit.ascii+__xOffset );
           break;
         case DiceMode::alphabet:
           display.cp437(false); 
@@ -123,6 +161,11 @@ public:
         case DiceMode::doubleNumber:
           display.println(autoGetRandomShit());
           break;
+      }
+
+      // test
+      if(mode==Mode::setting) { 
+        UIHelper.openMenu(display);
       }
     }
     void generateRandomShit() {
@@ -182,7 +225,7 @@ public:
 
       display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"
       display.setTextColor(SSD1306_WHITE);
-      display.setCursor(5+count, 8);
+      display.setCursor(5+*count, 8);
       display.println(String(m) + ":" + String(s) + ":" + String(ms));
 
       if(SWAgent.isHolding()) {

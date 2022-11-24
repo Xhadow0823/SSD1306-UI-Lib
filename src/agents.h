@@ -43,11 +43,13 @@ class __RotaryEncoderAgent {
 private:
     long* __target = nullptr;
 public:
-    inline void attachProxyTarget(long* target) {
-        __target = target;
+    inline void attachProxyTarget(long * const target) {
+        // __target = target;
+        count = target;
     }
     inline void deattachProxyTarget() {
         __target = nullptr;
+        count = defaultCountPtr;
     }
 } REAgent;
 

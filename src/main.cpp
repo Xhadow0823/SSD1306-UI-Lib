@@ -445,7 +445,7 @@ void setup() {
   display.drawFastVLine(display.width() / 2, 0, 32, WHITE);
   display.display();
 
-  
+  demo0.setup();
 }
 
 

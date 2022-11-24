@@ -18,15 +18,16 @@ void swClick() {  // ISR
 }
 
 volatile byte lastClk = -1;
-volatile unsigned int count = 0;
+volatile long * const defaultCountPtr = new long(0);
+volatile long* count = defaultCountPtr;
 void readEncoder() {  // ISR
   byte clk = PIND&(1<<2) ? HIGH : LOW;  // read the D2(CLK) pin
   byte dt = PIND&(1<<4) ? HIGH : LOW;  // read the D4(DT) pin
   if(lastClk != clk && clk == HIGH) {
       if(clk != dt) {
-        count++;
+        (*count)++;
       }else {
-        count--;
+        (*count)--;
       }
   }
   lastClk = clk;
