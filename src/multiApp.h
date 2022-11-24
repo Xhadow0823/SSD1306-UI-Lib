@@ -40,31 +40,31 @@ private:
     #define autoSetRandomShit(x) \
       switch(diceMode){ \
         case DiceMode::number:\
-          randomShit.number = x;\
+          randomShit.number = (long)(x);\
           break;\
         case DiceMode::ascii:\
-          randomShit.ascii = x;\
+          randomShit.ascii = (int16_t)(x);\
           break;\
         case DiceMode::alphabet:\
-          randomShit.alphabet = x;\
+          randomShit.alphabet = (char)(x);\
           break;\
         case DiceMode::doubleNumber:\
-          randomShit.doubleNumber = x;\
+          randomShit.doubleNumber = (double)(x);\
           break;\
       }\
 
     #define autoGetRandomShit() \
-      diceMode==DiceMode::number? randomShit.number : (\
+      (diceMode==DiceMode::number? randomShit.number : (\
         diceMode==DiceMode::ascii? randomShit.ascii : (\
           diceMode==DiceMode::alphabet? randomShit.alphabet : (\
-            randomShit.doubleNumber))) \
+            randomShit.doubleNumber)))) \
 
     unsigned long rollingStartTime = 0;
     
     enum DiceMode {
         number, alphabet, ascii, doubleNumber
     };
-    DiceMode diceMode = DiceMode::ascii;
+    DiceMode diceMode = DiceMode::doubleNumber;
 
     enum Mode {
         setting, standBy, rolling
@@ -76,14 +76,13 @@ public:
 
     }
     void loop() {
-      if(SWAgent.isHolding()){
-      // if(SWAgent.isClicked()){
+      if(SWAgent.isClicked()){
         rollingStartTime = millis();
         mode = Mode::rolling;
       }
       if(mode == Mode::rolling) {
-        // randomShit = random()%nCategory + startOffset;
-        autoSetRandomShit(random()%nCategory + startOffset);
+        generateRandomShit();
+        // for DEBUG
         display.fillRect(1, 2, 5, 5, WHITE);
         if(millis() - rollingStartTime >= rollingPeriod) {
           mode = Mode::standBy;
@@ -112,13 +111,37 @@ public:
           display.write( randomShit.ascii=='\n'? ' ' : randomShit.ascii );
           break;
         case DiceMode::alphabet:
-          display.println(autoGetRandomShit());
+          display.cp437(false); 
+          display.setTextSize(1);
+          display.setCursor(7, 0);
+          display.println((int)autoGetRandomShit());
+          display.setTextSize(2);
+          display.setCursor(display.width()/2-6, display.height()/2-8);
+
+          display.write(autoGetRandomShit());
           break;
         case DiceMode::doubleNumber:
           display.println(autoGetRandomShit());
           break;
       }
-      // display.println(autoGetRandomShit());
+    }
+    void generateRandomShit() {
+      switch(diceMode){
+        case DiceMode::number:
+          nCategory = 6;  startOffset=1;
+          autoSetRandomShit(random()%nCategory + startOffset);
+          break;
+        case DiceMode::ascii:
+          nCategory = 256;  startOffset=0;
+          autoSetRandomShit(random()%nCategory + startOffset);
+          break;
+        case DiceMode::alphabet:
+          autoSetRandomShit( random()%26 + (random()%2? 65: 97) );
+          break;
+        case DiceMode::doubleNumber:
+          autoSetRandomShit(random()%1000 / 1000.0);
+          break;
+      }
     }
     void openMenu() {
 
