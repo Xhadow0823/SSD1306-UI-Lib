@@ -4,6 +4,9 @@
 #include <Adafruit_SSD1306.h>
 #include <agents.h>
 
+// TODO: make UIHelper better
+// TODO: add a multi-app manager to run two apps
+
 class AppInterface {
 protected:
     const char* __name = nullptr;
@@ -25,7 +28,7 @@ private:
 public:
   // __UIHelper(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
   void openMenu(Adafruit_SSD1306& display) {
-    REAgent.attachProxyTarget(&cursor);
+    cursor += REAgent.getOffset();
 
     const int margin = 2;
     display.drawRect(margin, margin, display.width()-2*margin, display.height()-2*margin, WHITE);
@@ -102,9 +105,12 @@ private:
 public:
     Dice(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
     void setup() {
-      REAgent.attachProxyTarget(&__xOffset);
+
     }
     void loop() {
+      if(mode != Mode::setting) {
+        __xOffset += REAgent.getOffset();
+      }
       if(SWAgent.getLongPressDeltaTime() > 1000) {
         mode = Mode::setting;
       }
@@ -112,7 +118,6 @@ public:
         if(mode == Mode::setting){ 
           UIHelper.clickOnMenu();
           mode = Mode::standBy;
-          REAgent.attachProxyTarget(&__xOffset);
         }else {
           rollingStartTime = millis();
           mode = Mode::rolling;
@@ -225,7 +230,7 @@ public:
 
       display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"
       display.setTextColor(SSD1306_WHITE);
-      display.setCursor(5+*count, 8);
+      display.setCursor(5+count, 8);
       display.println(String(m) + ":" + String(s) + ":" + String(ms));
 
       if(SWAgent.isHolding()) {

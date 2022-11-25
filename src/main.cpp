@@ -467,6 +467,8 @@ unsigned int swHoldCount = 0;  // for debug
 void loop() {
   SWAgent.clearClicked();
   SWAgent.update();
+  REAgent.clearOffset();
+  REAgent.update();
 
   display.clearDisplay();
 

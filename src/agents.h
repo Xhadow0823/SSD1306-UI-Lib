@@ -12,7 +12,7 @@ private:
 public:
   void update() {
     if(clicked) {
-      clicked = false;  // clear ISR buffer  // TODO: change variable name of all ISRs
+      clicked = false;  // clear ISR's buffer !!  // TODO: change variable name of all ISRs!!!
       __clicked = true;
       __isHolding = false;
     }else if(sw == LOW){
@@ -41,16 +41,19 @@ public:
 
 class __RotaryEncoderAgent {
 private:
-    long* __target = nullptr;
+  long lastCount = count;
+  int8_t offset = 0;
 public:
-    inline void attachProxyTarget(long * const target) {
-        // __target = target;
-        count = target;
-    }
-    inline void deattachProxyTarget() {
-        __target = nullptr;
-        count = defaultCountPtr;
-    }
+  inline void update() {
+    offset += (int8_t)(count - lastCount);
+    lastCount = count;
+  }
+  inline int8_t getOffset() {
+    return offset;
+  }
+  inline void clearOffset() {
+    offset = 0;
+  }
 } REAgent;
 
 #endif
