@@ -358,6 +358,7 @@ void swClick();
 
 // Demo0 demo0(display);
 Dice demo0(display);
+__UIHelper UIHelper0(display);
 
 void setup() {
   Serial.begin(9600);
@@ -445,7 +446,6 @@ void setup() {
   display.drawFastVLine(display.width() / 2, 0, 32, WHITE);
   display.display();
 
-  demo0.setup();
 }
 
 
@@ -475,6 +475,7 @@ void loop() {
   
 
   demo0.loop();
+  UIHelper0.openMenu();
   
   
   display.display();
