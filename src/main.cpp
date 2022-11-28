@@ -28,7 +28,7 @@
 #include <multiApp.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
@@ -446,6 +446,8 @@ void setup() {
   display.drawFastVLine(display.width() / 2, 0, 32, WHITE);
   display.display();
 
+  demo0.UIHelper = &UIHelper0;
+  demo0.setup();
 }
 
 
@@ -475,7 +477,7 @@ void loop() {
   
 
   demo0.loop();
-  UIHelper0.openMenu();
+  // UIHelper0.openMenu();
   
   
   display.display();

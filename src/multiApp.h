@@ -26,90 +26,42 @@ public:
 class __UIHelper: public AppInterface {
 private:
   Adafruit_SSD1306& display;
-  long cursor = 0;
+  int16_t menuCursor = 0;
 
   UIWindow* window;
   UIList* list;
 public:
   __UIHelper(Adafruit_SSD1306& display): display(display) {
     window = new UIWindow(display);
-    list = new UIList(display);
-  }
-  __UIHelper() { }
-  void loop() {
-    // openMenu();
-  }
-  void openMenu() {
-    cursor += REAgent.getOffset();
-    window->draw();
+    list   = new UIList(display);
+    window->setWindowMargin(10);
     list->setPosition(window->innerStartX()+1, window->innerStartY()+1);
     list->setSize(window->innerWidth()-2, window->innerHeight()-2);
-    static const char* items[] = {"kiwi", "dodo", "peacock", "exit"};
-    list->setItems(items, sizeof(items) / sizeof(const char*));
+    static const char* items[] = {"kiwi", "Dodo", "peacock", "Sparrow", "Pigeon", "crow", "exit"};  // default
+    list->setItems(nullptr, sizeof(items) / sizeof(const char*));
+    // list->setItems(items, sizeof(items) / sizeof(const char*));
+    list->setCursor(menuCursor);
+  }
+  void loop() {
+    openMenu();
+  }
+  int8_t openMenu() {
+    menuCursor += REAgent.getOffset();
+    menuCursor = (menuCursor+list->itemListLength()) % (list->itemListLength());
+    list->setCursor(menuCursor);
+
+    window->draw();
     list->draw();
-
-
-
-    // drawButtons(0, 0, 0, 0, SWAgent.isHolding());
-    
-    // if(SWAgent.isClicked()) {
-    //   display.startscrollright(0x00, 0x0F);
-    //   delay(2000);
-    //   display.stopscroll();
-    // }
-
-    // drawLabel(2+1+2+1+28+1 + 3, 2+1+2+1 + 1, 50, 22, 1, "Beach");
-    
+    return !SWAgent.isClicked()? 0 : (menuCursor+1);
   }
-  void openMenu(Adafruit_SSD1306& display) {
-    cursor += REAgent.getOffset();
-
-    
-    // const int nItems = 5;
-    // const int buttonHeight=5;
-    // const int buttonMargin = (display.height()-2*margin-nItems*buttonHeight) / nItems;
-    // for(int i = 0; i < nItems; i++) {
-    //   if((cursor%nItems) == i) {
-    //     display.fillRoundRect(margin, margin + buttonMargin*(i+1) + buttonHeight*i, 25, buttonHeight, 3, WHITE);
-    //   }else {
-    //     display.drawRoundRect(margin, margin + buttonMargin*(i+1) + buttonHeight*i, 25, buttonHeight, 3, WHITE);
-    //   }
-    // }
+  void setMenuItems(const char** items, size_t size) {
+    list->setItems(items, size);
   }
+};
 
-  void drawWindow() {
-    const int8_t windowMargin = 2;
-    display.fillRect(windowMargin, windowMargin, display.width()-2*windowMargin, display.height()-2*windowMargin, SSD1306_BLACK);
-    display.drawRect(windowMargin, windowMargin, display.width()-2*windowMargin, display.height()-2*windowMargin, SSD1306_WHITE);
-  }
 
-  void drawButtons(int16_t x, int16_t y, int16_t w, int16_t h, bool isPressed = false) {
-    const int8_t windowW = 128 - 2*2 -1*2, 
-                 windowH =  32 - 2*2 -1*2,
-                 buttonMargin = 2;
-    display.fillRect(2+1+buttonMargin, 2+1+buttonMargin, 28, 22, isPressed? SSD1306_WHITE : SSD1306_BLACK);
-    display.drawRect(2+1+buttonMargin, 2+1+buttonMargin, 28, 22, SSD1306_WHITE);
 
-    display.setTextSize(1); // Draw 2X-scale text // 6,8 "12,16"
-    display.setTextColor(isPressed? SSD1306_BLACK : SSD1306_WHITE);
-    display.setCursor(2+1+buttonMargin + 2, 2+1+buttonMargin + 1 + 11 - 4);
-    display.print("BUTT");
-  }
 
-  void drawLabel(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t size = 1, const char* content = nullptr) {
-    // calc the string width 
-    uint8_t maxStringLen = w / (6*size+1);  maxStringLen>strlen(content)? strlen(content) : maxStringLen;
-    char buffer[32] = "";
-    
-    display.setTextSize(size); // 6,8 12,16 ...
-    display.setCursor(x, y + (h-8*size)/2);
-    display.print(strncpy(buffer, content, maxStringLen<32? maxStringLen : 31));
-  }
-
-  void clickOnMenu() {
-    // set the function of menu item
-  }
-} UIHelper;
 
 class Dice : AppInterface {
 private:
@@ -164,10 +116,16 @@ private:
         setting, standBy, rolling
     };
     Mode mode = Mode::standBy;
+
+    // for Debug
+    const char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
 public:
     Dice(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
+    // for denug
+    __UIHelper* UIHelper;
     void setup() {
-
+      // set the UI helper menu item and functions
+      UIHelper->setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
     }
     void loop() {
       if(mode != Mode::setting) {
@@ -176,14 +134,9 @@ public:
       if(SWAgent.getLongPressDeltaTime() > 1000) {
         mode = Mode::setting;
       }
-      else if(SWAgent.isClicked()){
-        if(mode == Mode::setting){ 
-          UIHelper.clickOnMenu();
-          mode = Mode::standBy;
-        }else {
-          rollingStartTime = millis();
-          mode = Mode::rolling;
-        }
+      else if(mode != Mode::setting && SWAgent.isClicked()){
+        rollingStartTime = millis();
+        mode = Mode::rolling;
       }
       if(mode == Mode::rolling) {
         generateRandomShit();
@@ -232,7 +185,11 @@ public:
 
       // test
       if(mode==Mode::setting) { 
-        UIHelper.openMenu(display);
+        int funcN = UIHelper->openMenu();
+        if(funcN != 0){
+          Serial.println(String("f: ") + String(funcN));
+          mode = Mode::standBy;
+        }
       }
     }
     void generateRandomShit() {

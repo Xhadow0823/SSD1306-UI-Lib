@@ -17,7 +17,7 @@ class UIWindow: public UIComponentInterface {
 private:
   // Adafruit_SSD1306& display;  // declared in parent class
 
-  const int8_t windowMargin = 2;
+  int8_t windowMargin = 2;
 public:
   UIWindow(Adafruit_SSD1306& display): UIComponentInterface(display) { }
 
@@ -25,6 +25,12 @@ public:
     display.fillRect(windowMargin, windowMargin, width(), height(), SSD1306_BLACK);
     display.drawRect(windowMargin, windowMargin, width(), height(), SSD1306_WHITE);
     // todo: (optional) add window border thickness
+  }
+  inline void setWindowMargin(int8_t margin) {
+    windowMargin = margin;
+  }
+  inline int8_t getWindowMargin() {
+    return windowMargin;
   }
   inline uint8_t width() {
     return display.width()-2*windowMargin;
@@ -50,7 +56,7 @@ class UIList: public UIComponentInterface {
 private:
   int16_t _x = 0, _y = 0;
   int16_t _width = 32, _height = 32;
-  int16_t cursor = 0;
+  int16_t cursor = -1;
   
   const char** itemListPtr = nullptr;
   uint8_t itemListSize = 0;
@@ -58,8 +64,8 @@ public:
   UIList(Adafruit_SSD1306& display): UIComponentInterface(display) { }
   void draw() {
     // update()...
-    cursor += REAgent.getOffset();
-    cursor = (cursor+itemListSize)%itemListSize;
+    // cursor += REAgent.getOffset();
+    // cursor = (cursor+itemListSize)%itemListSize;
 
     // draw()...
     const int sizeScale = 1;
@@ -81,7 +87,7 @@ public:
       display.setTextSize(sizeScale);
       display.setTextColor(highLight? SSD1306_BLACK: SSD1306_WHITE);
       display.setCursor(_x + 2, _y + 2 + lineHeight*i);
-      char buffer[16] = "";
+      char buffer[32] = "";
       sprintf(buffer, "%2d.%s", (i+indexOffset+1), itemListPtr==nullptr? "BUTT" : itemListPtr[i+indexOffset]);
       display.print(buffer);
 
@@ -105,10 +111,19 @@ public:
     itemListSize = size;
   }
   inline void resetCursor() {
-    cursor = 0;
+    cursor = -1;
   }
-  void clickOnItem() {
-    // return command
+  inline int16_t getCursor() {
+    return cursor;
+  }
+  inline void setCursor(int16_t pos) {
+    cursor = pos;
+  }
+  inline int16_t itemListLength() {
+    return itemListSize;
+  }
+  inline const char** itemNameArray() {
+    return itemListPtr;
   }
 };
 
