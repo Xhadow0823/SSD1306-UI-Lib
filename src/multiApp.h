@@ -262,4 +262,24 @@ public:
     }
 };
 
+size_t calcFreeMemorySpaceSize() {
+  unsigned int target = 512, delta = 512;
+  unsigned char* spacePtr = nullptr;
+
+  while(!(delta <= 0)) {
+    spacePtr = (unsigned char*)malloc((size_t)target * sizeof(unsigned char));
+    if(spacePtr) {  // free space size > target
+      target += delta;
+
+      free(spacePtr);
+    }else {         // free space size < target
+      delta = delta / 2;
+      target -= delta;
+    }
+    // Serial.print(target);
+    // Serial.print(", ");
+  }
+  return (size_t)target;
+}
+
 #endif

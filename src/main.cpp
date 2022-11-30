@@ -157,6 +157,9 @@ void setup() {
   // BMI160.setGyroRange(250);
   BMI160.setAccelerometerRange(250);
   Serial.println("Initializing IMU device...done.");
+
+  Serial.print("free space: ");
+  Serial.println(calcFreeMemorySpaceSize());
 }
 
 float convertRawGyro(int gRaw) {
