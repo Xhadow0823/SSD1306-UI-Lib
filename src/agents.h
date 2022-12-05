@@ -56,4 +56,56 @@ public:
   }
 } REAgent;
 
+struct VBAction {
+  uint8_t strength = 255;
+  unsigned int duration = 50;
+  VBAction(uint8_t strength, unsigned int duration): strength(strength), duration(duration) { }
+};
+
+class __VBAgent {
+private:
+  const uint8_t motorPin = 5;
+  uint8_t analogValue = 255;
+
+  unsigned long startTime = 0;
+  unsigned long duration = 0;
+public:
+  // __VBAgent() { }
+  void init() {
+    pinMode(motorPin, OUTPUT);
+  }
+  void update() {
+    // if(duration!=0) {
+      if(millis() - startTime < duration) {
+        analogWrite(motorPin, analogValue);
+        // Serial.println("bzz");
+      }else {
+        // time's up
+        analogWrite(motorPin, 0);
+        duration = 0;
+        // Serial.println("bzz END");
+      }
+    // }
+  }
+
+  void once(VBAction&& action) {
+    // set the task to do 
+    // set startTime
+    startTime = millis();
+    // set duration
+    duration = action.duration;
+    analogValue = action.strength;
+
+    // analogWrite(motorPin, 255);
+  }
+  void serial() {
+    // push some action input task queue
+    // once(VBAction(255, 50));
+    // once(VBAction(200, 50));
+    // once(VBAction(150, 50));
+    // once(VBAction(100, 50));
+    // ...
+  }
+} VBAgent;
+
 #endif

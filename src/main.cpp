@@ -428,6 +428,7 @@ void setup() {
   #define DT 3
   pinMode(CLK, INPUT);
   pinMode(DT, INPUT);
+  VBAgent.init();  // pinMode(5, OUTPUT)
 
   attachInterrupt(0, readEncoder, CHANGE);
   attachInterrupt(1, swClick, CHANGE);
@@ -471,6 +472,7 @@ void loop() {
   SWAgent.update();
   REAgent.clearOffset();
   REAgent.update();
+  VBAgent.update();
 
   display.clearDisplay();
 
@@ -478,6 +480,13 @@ void loop() {
 
   demo0.loop();
   // UIHelper0.openMenu();
+  static bool vbON = true;
+  static uint8_t strength = 125;
+  if(SWAgent.isClicked())  vbON = !vbON;
+  strength += REAgent.getOffset();
+  VBAgent.once(VBAction(strength, (vbON? 100 : 0)));
+  // VBAgent.once(VBAction((vbON? strength : 0), 50));
+  display.print(strength);
   
   
   display.display();
