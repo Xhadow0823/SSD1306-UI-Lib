@@ -461,8 +461,6 @@ bool invert = false;
 int nButtons = 5;
 
 
-
-
 bool swHold = false;
 bool lastSwHold = false;
 unsigned long swHoldStartTime = 0;
@@ -480,13 +478,21 @@ void loop() {
 
   demo0.loop();
   // UIHelper0.openMenu();
-  static bool vbON = true;
-  static uint8_t strength = 125;
-  if(SWAgent.isClicked())  vbON = !vbON;
-  strength += REAgent.getOffset();
-  VBAgent.once(VBAction(strength, (vbON? 100 : 0)));
-  // VBAgent.once(VBAction((vbON? strength : 0), 50));
-  display.print(strength);
+  // static bool vbON = true;
+  // static uint8_t strength = 125;
+  // if(SWAgent.isClicked())  vbON = !vbON;
+  // strength += REAgent.getOffset();
+  // VBAgent.once(VBAction(strength, (vbON? 100 : 0)));
+  // // VBAgent.once(VBAction((vbON? strength : 0), 50));
+  // display.print(strength);
+  if(SWAgent.isClicked()) {
+    // VBAgent.serial(3, tempVBAction(123, 555),
+    //                   tempVBAction(222, 444),
+    //                   tempVBAction( 87, 333));
+    VBAgent.vbserial( tempVBAction(123, 555),
+                      tempVBAction(222, 444),
+                      tempVBAction( 87, 333));
+  }
   
   
   display.display();

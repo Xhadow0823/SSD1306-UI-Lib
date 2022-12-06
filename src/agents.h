@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <ISRs.h>
 
+#include <stdarg.h>
+
 class __SWAgent {
 private:
   bool __clicked = false;
@@ -59,8 +61,12 @@ public:
 struct VBAction {
   uint8_t strength = 255;
   unsigned int duration = 50;
-  VBAction(uint8_t strength, unsigned int duration): strength(strength), duration(duration) { }
+  VBAction(const uint8_t strength, const unsigned int duration): strength(strength), duration(duration) { }
+  VBAction() {}
+  inline const VBAction * const tempPtr() { return this; }
 };
+
+#define tempVBAction(...) (VBAction(__VA_ARGS__).tempPtr())
 
 class __VBAgent {
 private:
@@ -95,16 +101,25 @@ public:
     // set duration
     duration = action.duration;
     analogValue = action.strength;
-
-    // analogWrite(motorPin, 255);
   }
-  void serial() {
+  #define NUMARGS(...)  (sizeof((const VBAction *[]){__VA_ARGS__})/sizeof(const VBAction *))
+  #define vbserial(...) serial(NUMARGS(__VA_ARGS__), __VA_ARGS__)
+  void serial(int actionCnt, ...) const {
     // push some action input task queue
     // once(VBAction(255, 50));
     // once(VBAction(200, 50));
     // once(VBAction(150, 50));
     // once(VBAction(100, 50));
     // ...
+    va_list actions;
+    va_start(actions, actionCnt);
+
+    for(int i = 0; i < actionCnt; i++) {
+      const VBAction* a = va_arg(actions, const VBAction*);
+      Serial.println(String(a->strength) + " " + String(a->duration));
+    }
+    
+    va_end(actions);
   }
 } VBAgent;
 
