@@ -61,8 +61,6 @@ public:
 
 
 
-
-
 class Dice : AppInterface {
 private:
     const char* name = "Dice";
