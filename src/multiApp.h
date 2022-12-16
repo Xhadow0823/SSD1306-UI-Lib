@@ -1,10 +1,10 @@
 #ifndef __MULTI_APP_H__
     #define __MULTI_APP_H__
 #include <Arduino.h>
-#include <Adafruit_SSD1306.h>
 #include <agents.h>
 #include <string.h>
 #include <UI.h>
+#include <display.h>
 
 // TODO: make UIHelper better
 // TODO: add a multi-app manager to run two apps
@@ -13,7 +13,6 @@ class AppInterface {
 protected:
     const char* __name = nullptr;
     bool __exit = false;
-    // Adafruit_SSD1306& display;
 public:
     AppInterface() { }
 
@@ -32,8 +31,8 @@ private:
   UIList* list;
 public:
   __UIHelper(Adafruit_SSD1306& display): display(display) {
-    window = new UIWindow(display);
-    list   = new UIList(display);
+    window = new UIWindow();
+    list   = new UIList();
     window->setWindowMargin(10);
     list->setPosition(window->innerStartX()+1, window->innerStartY()+1);
     list->setSize(window->innerWidth()-2, window->innerHeight()-2);
@@ -139,7 +138,7 @@ public:
       if(mode == Mode::rolling) {
         generateRandomShit();
         // for DEBUG
-        display.fillRect(1, 2, 5, 5, WHITE);
+        display.fillRect(1, 2, 5, 5, SSD1306_WHITE);
         if(millis() - rollingStartTime >= rollingPeriod) {
           mode = Mode::standBy;
         }
@@ -156,7 +155,7 @@ public:
           display.println(autoGetRandomShit());
           break;
         case DiceMode::ascii:
-          display.drawRect(0, 0, 5, 5, WHITE);
+          display.drawRect(0, 0, 5, 5, SSD1306_WHITE);
           display.setTextSize(1);
           display.setCursor(7, 0);
           display.println(String(randomShit.ascii+__xOffset));
@@ -217,11 +216,10 @@ public:
 class Demo0: AppInterface {
 private:
     const char* __name = "DEMO0";
-    Adafruit_SSD1306& display;
 
     bool pause = 0;
 public:
-    Demo0(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
+    Demo0() { }
     void setup() {
       
     }
@@ -231,7 +229,7 @@ public:
         cli();
         if(pause) {
           // go
-          ms = 0;  s = 0; m = 0;
+          ms = 0;  s = 0;  m = 0;
           TCNT2  = 0;  // set counter value to 0
           TCCR2B |= (1 << CS22);
           TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
@@ -245,17 +243,17 @@ public:
       }
       display.invertDisplay(pause);
 
-      display.setTextSize(2); // Draw 2X-scale text // 6,8 "12,16"
+      display.setTextSize(2);  // Draw 2X-scale text // 6,8 "12,16"
       display.setTextColor(SSD1306_WHITE);
-      display.setCursor(5+count, 8);
+      display.setCursor(12+count, display.height()/2 - 8);
       display.println(String(m) + ":" + String(s) + ":" + String(ms));
 
       if(SWAgent.isHolding()) {
-        display.setTextSize(1); // Draw 2X-scale text // 6,8
+        display.setTextSize(1);  // Draw 2X-scale text // 6,8
         display.setTextColor(SSD1306_WHITE);
         display.setCursor(2, 1);
         display.print(String(SWAgent.getLongPressDeltaTime()));
-        display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, 28, 5, WHITE);
+        display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, display.height()-4, 5, SSD1306_WHITE);
       }
     }
 };

@@ -21,28 +21,31 @@
 #include <multiApp.h>
 #include <display.h>
 
-// ISRs
-void readEncoder();
-void swClick();
+Demo0 demo0;
 
 void setup() {
+  // ========== init Serial ==========
   Serial.begin(9600);
+  // ========== init Serial end ==========
 
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  // ========== init SSD1306 ==========
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
+  // ========== init SSD1306 end ==========
 
+  // ========== init rotary encoder ==========
   #define CLK 2
   #define DT 3
   pinMode(CLK, INPUT);
   pinMode(DT, INPUT);
-
   attachInterrupt(0, readEncoder, CHANGE);
   attachInterrupt(1, swClick, CHANGE);
+  // ========== init rotary encoder end ==========
 
-  //set timer2 interrupt at 1kHz
+  // ========== set timer2 interrupt at 1kHz ==========
   cli();
   TCCR2A = 0;  // set entire TCCR2A register to 0
   TCCR2B = 0;  // same for TCCR2B
@@ -52,6 +55,9 @@ void setup() {
   TCCR2B |= (1 << CS22);
   TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
   sei();
+  // ========== set timer2 interrupt at 1kHz end ==========
+
+  
 
   display.display();
 }
@@ -59,6 +65,7 @@ void setup() {
 
 
 void loop() {
+  // routine of agents
   SWAgent.clearClicked();
   SWAgent.update();
   REAgent.clearOffset();
@@ -68,11 +75,12 @@ void loop() {
 
   
 
-  // demo0.loop();
+  demo0.loop();
   // UIHelper0.openMenu();
   
-
+  // routine of display
   display.display();
 
+  // routine of delay
   delay(10);
 }

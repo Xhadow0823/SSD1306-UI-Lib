@@ -1,25 +1,21 @@
 #ifndef __UI_H__
   #define __UI_H__
 #include <Arduino.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <agents.h>
+#include <display.h>
 
 class UIComponentInterface {
 protected:
-  Adafruit_SSD1306& display;
 public:
-  UIComponentInterface(Adafruit_SSD1306& display): display(display) { }
+  UIComponentInterface() { }
   virtual void draw() { }
 };
 
 class UIWindow: public UIComponentInterface {
 private:
-  // Adafruit_SSD1306& display;  // declared in parent class
-
   int8_t windowMargin = 2;
 public:
-  UIWindow(Adafruit_SSD1306& display): UIComponentInterface(display) { }
+  UIWindow() { }
 
   void draw() {
     display.fillRect(windowMargin, windowMargin, width(), height(), SSD1306_BLACK);
@@ -61,7 +57,7 @@ private:
   const char** itemListPtr = nullptr;
   uint8_t itemListSize = 0;
 public:
-  UIList(Adafruit_SSD1306& display): UIComponentInterface(display) { }
+  UIList() { }
   void draw() {
     // update()...
     // cursor += REAgent.getOffset();
