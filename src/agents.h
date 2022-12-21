@@ -56,4 +56,55 @@ public:
   }
 } REAgent;
 
+class __TimerAgent {
+private:
+
+public:
+  inline void init() {
+    stop();
+  }
+  void restart() {
+    // ========== set timer2 interrupt at 1kHz ==========
+    cli();
+    clearReg();
+    TCCR2A = 0;               // set entire TCCR2A register to 0
+    TCCR2B = 0;               // same for TCCR2B
+    TCNT2  = 0;               // initialize counter value to 0
+    OCR2A  = 249;             // = (16*10^6) / (64*1000) - 1 (must be <256)
+    TCCR2A |= (1 << WGM21);   // turn on CTC mode
+    TCCR2B |= (1 << CS22);
+    TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+    sei();
+    // ========== set timer2 interrupt at 1kHz end ==========
+  }
+  void pause() {
+    cli();
+    TCCR2B &= ~(1 << CS22);
+    TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
+    sei();
+  }
+  void resume() {
+    cli();
+    TCCR2B |= (1 << CS22);
+    TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+    sei();
+  }
+  void stop() {
+    cli();
+    clearReg();
+    TCCR2A = 0;               // set entire TCCR2A register to 0
+    TCCR2B = 0;               // same for TCCR2B
+    TCNT2  = 0;               // initialize counter value to 0
+    OCR2A  = 249;             // = (16*10^6) / (64*1000) - 1 (must be <256)
+    TCCR2A |= (1 << WGM21);   // turn on CTC mode
+    TCCR2B &= ~(1 << CS22);
+    TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
+    sei();
+  }
+  inline void clearReg() {
+    m = 0; s = 0; ms = 0;
+  }
+
+} TimerAgent;
+
 #endif
