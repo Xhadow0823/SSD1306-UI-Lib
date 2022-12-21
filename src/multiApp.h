@@ -14,6 +14,7 @@ protected:
     bool __exit = false;
 public:
     AppInterface() { }
+    virtual ~AppInterface() { }
     inline static const char* name = "AppInterface";
 
     virtual void setup() { }
@@ -56,6 +57,7 @@ public:
   inline int16_t getSelectedItem() {
     return selectedItem;
   }
+  /** pointer items MUST be public? */
   void setMenuItems(const char** items, size_t size) {
     list.setItems(items, size);
   }
@@ -114,16 +116,17 @@ private:
     };
     Mode mode = Mode::standBy;
 
-    // for Debug
-    const char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
+    
 public:
     Dice() { }
     inline static const char* name = "Dice";
-    
+    // for Debug
+    const char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
     // for denug
     void setup() {
       // set the UI helper menu item and functions
       UIHelper.setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
+      // UIHelper.setMenuItems(nullptr, sizeof(menuItems)/sizeof(const char*));
     }
     void loop() {
       if(mode != Mode::setting) {
@@ -159,7 +162,8 @@ public:
           display.drawRect(0, 0, 5, 5, SSD1306_WHITE);
           display.setTextSize(1);
           display.setCursor(7, 0);
-          display.println(String(randomShit.ascii+__xOffset));
+          // display.println(String(randomShit.ascii+__xOffset));
+          display.print((uint8_t)randomShit.ascii+__xOffset);
 
           display.setTextSize(2);
           display.setCursor((display.width()/2-6 + __xOffset)%(128-11), display.height()/2-8);
@@ -182,10 +186,11 @@ public:
       }
 
       // test
+      // FIXME: click the menu item after menu was opened
       if(mode==Mode::setting) { 
-        int funcN = UIHelper.openMenu();
+        uint8_t funcN = UIHelper.openMenu();
         if(funcN != 0){
-          Serial.println(String("f: ") + String(funcN));
+          Serial.println(funcN);
           if(funcN == 4) {  // menu "exit"
             __exit = true;
             return ;
@@ -222,46 +227,31 @@ public:
     // Demo0() { }
     inline static const char* name = "Demo0";
     void setup() {
-      
+      TimerAgent.stop();
+      pause = true;
     }
 
     void loop() {
-      display.setTextSize(1);
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(display.width()-6*5, display.height() - 8);
-      display.print(pause? "pause" : "not");
-      display.setCursor(display.width()-6*4, display.height() - 8*2);
-      display.print(m); display.print(' ');  display.print(s);
+      // display.setTextSize(1);
+      // display.setTextColor(SSD1306_WHITE);
+      // display.setCursor(display.width()-6*5, display.height() - 8);
+      // display.print(pause? "pause" : "not");
+      // display.setCursor(display.width()-6*4, display.height() - 8*2);
+      // display.print(m); display.print(' ');  display.print(s);
 
       if(SWAgent.isClicked() && SWAgent.getLongPressDeltaTime() < 3000) {
-        cli();
         if(pause) {
-          // go
-          ms = 0;  s = 0;  m = 0;
-          TCNT2  = 0;  // set counter value to 0
-          TCCR2B |= (1 << CS22);
-          TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+          // restart
+          TimerAgent.restart();
         }else {
-          // stop
-          TCCR2B &= ~(1 << CS22);
-          TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
+          // pause
+          TimerAgent.pause();
         }
         pause = !pause;
-        sei();
       }
       if(s >= 5) {
         __exit = true;
-        cli();
-        // start at next loop
-        pause = false;
-        TCCR2B &= ~(1 << CS22);
-        TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
-        TCNT2  = 0;  // set counter value to 0
-        ms = 0;  s = 0;  m = 0;
-        sei();
-        // TCCR2B |= (1 << CS22);
-        // TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
-        // ^ have to run two following line to start timer...////////////////////
+        TimerAgent.stop();
         return ;
       }
       display.invertDisplay(pause);

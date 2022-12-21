@@ -22,21 +22,45 @@
 #include <display.h>
 
 // Demo0 demo0;
+size_t calcFreeMemorySpaceSize() {
+  unsigned int target = 512, delta = 512;
+  unsigned char* spacePtr = nullptr;
+
+  while(!(delta <= 0)) {
+    spacePtr = (unsigned char*)malloc((size_t)target * sizeof(unsigned char));
+    if(spacePtr) {  // free space size > target
+      target += delta;
+
+      free(spacePtr);
+    }else {         // free space size < target
+      delta = delta / 2;
+      target -= delta;
+    }
+  }
+  return (size_t)target;
+}
 
 class MultiAppManager: AppInterface {
 private:
   AppInterface* app = nullptr;
-  const char* menuItems[4] = { "Demo0", "Dice", "Menu" };
+  
 public:
+  const char* menuItems[3] = { "Demo0", "Dice", "Menu" };
   inline static const char* name = "MultiAppManager";
 
   MultiAppManager() {
-    load(1);
+    // load(0), then delete AppInterfece will work when delete Demo0
+    // load(1), the delete operator will not work when delete Demo0
+    // load(2), the delete operator will not work when delete both Demo0 and Dice
+    // load(2);
+    // Conclusion: in constructor, every memory new here will not be a dynamic allocated memory but a static member...
   }
 
   void setup() {
     if(app) {
       app->setup();
+    }else {
+      load(1);  // Good
     }
   }
 
@@ -45,6 +69,7 @@ public:
       app->loop();
       // checkc app->exit()
       if(app->exit()){
+        Serial.println("EXIT");
         load(0);
       }
     }else {
@@ -107,21 +132,15 @@ void setup() {
   attachInterrupt(1, swClick, CHANGE);
   // ========== init rotary encoder end ==========
 
-  // ========== set timer2 interrupt at 1kHz ==========
-  cli();
-  TCCR2A = 0;  // set entire TCCR2A register to 0
-  TCCR2B = 0;  // same for TCCR2B
-  TCNT2  = 0;  //initialize counter value to 0
-  OCR2A = 249;  // = (16*10^6) / (64*1000) - 1 (must be <256)
-  TCCR2A |= (1 << WGM21);  // turn on CTC mode
-  TCCR2B |= (1 << CS22);
-  TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
-  sei();
-  // ========== set timer2 interrupt at 1kHz end ==========
+  // set timer2 interrupt at 1kHz
+  TimerAgent.init();
 
   
+  Serial.println("[START]");
+
   multi.setup();
   display.display();
+  
 }
 
 
@@ -142,6 +161,12 @@ void loop() {
   // UIHelper0.openMenu();
   multi.loop();
   
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(display.width()-6*3, 0);
+  display.print(calcFreeMemorySpaceSize());
+
   // routine of display
   display.display();
 

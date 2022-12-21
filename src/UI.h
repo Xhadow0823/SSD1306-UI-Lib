@@ -84,7 +84,7 @@ public:
       display.setTextColor(highLight? SSD1306_BLACK: SSD1306_WHITE);
       display.setCursor(_x + 2, _y + 2 + lineHeight*i);
       char buffer[32] = "";
-      sprintf(buffer, "%2d.%s", (i+indexOffset+1), itemListPtr==nullptr? "BUTT" : itemListPtr[i+indexOffset]);
+      snprintf(buffer, 32, "%2d.%s", (i+indexOffset+1), itemListPtr==nullptr? "BUTT" : itemListPtr[i+indexOffset]);
       display.print(buffer);
 
       // debug
