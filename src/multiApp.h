@@ -14,8 +14,8 @@ protected:
     bool __exit = false;
 public:
     AppInterface() { }
-    virtual ~AppInterface() { }
-    inline static const char* name = "AppInterface";
+    virtual ~AppInterface() { }  // IMPORTANT
+    inline static const char* PROGMEM name = "AppInterface";
 
     virtual void setup() { }
     virtual void loop() { }
@@ -37,7 +37,7 @@ public:
     list.setItems(nullptr, sizeof(items) / sizeof(const char*));
     list.setCursor(menuCursor);
   }
-  inline static const char* name = "UIHelper";
+  inline static const char* PROGMEM name = "UIHelper";
   void setup() {
     // nothing...
   }
@@ -119,9 +119,9 @@ private:
     
 public:
     Dice() { }
-    inline static const char* name = "Dice";
+    inline static const char* PROGMEM name = "Dice";
     // for Debug
-    const char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
+    const PROGMEM char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
     // for denug
     void setup() {
       // set the UI helper menu item and functions
@@ -225,20 +225,13 @@ private:
     bool pause = 0;
 public:
     // Demo0() { }
-    inline static const char* name = "Demo0";
+    inline static const char* PROGMEM name = "Demo0";
     void setup() {
       TimerAgent.stop();
       pause = true;
     }
 
     void loop() {
-      // display.setTextSize(1);
-      // display.setTextColor(SSD1306_WHITE);
-      // display.setCursor(display.width()-6*5, display.height() - 8);
-      // display.print(pause? "pause" : "not");
-      // display.setCursor(display.width()-6*4, display.height() - 8*2);
-      // display.print(m); display.print(' ');  display.print(s);
-
       if(SWAgent.isClicked() && SWAgent.getLongPressDeltaTime() < 3000) {
         if(pause) {
           // restart
@@ -250,8 +243,8 @@ public:
         pause = !pause;
       }
       if(s >= 5) {
-        __exit = true;
         TimerAgent.stop();
+        __exit = true;
         return ;
       }
       display.invertDisplay(pause);
@@ -267,7 +260,7 @@ public:
         display.setTextSize(1);  // Draw 2X-scale text // 6,8
         display.setTextColor(SSD1306_WHITE);
         display.setCursor(2, 1);
-        display.print(String(SWAgent.getLongPressDeltaTime()));
+        display.print(SWAgent.getLongPressDeltaTime());
         display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, display.height()-4, 5, SSD1306_WHITE);
       }
     }

@@ -45,8 +45,8 @@ private:
   AppInterface* app = nullptr;
   
 public:
-  const char* menuItems[3] = { "Demo0", "Dice", "Menu" };
-  inline static const char* name = "MultiAppManager";
+  const PROGMEM char* menuItems[3] = { "Demo0", "Dice", "Menu" };
+  inline static const char* PROGMEM name = "MultiAppManager";
 
   MultiAppManager() {
     // load(0), then delete AppInterfece will work when delete Demo0
@@ -69,7 +69,7 @@ public:
       app->loop();
       // checkc app->exit()
       if(app->exit()){
-        Serial.println("EXIT");
+        Serial.println(F("EXIT"));
         load(0);
       }
     }else {
@@ -136,7 +136,7 @@ void setup() {
   TimerAgent.init();
 
   
-  Serial.println("[START]");
+  Serial.println(F("[START]"));
 
   multi.setup();
   display.display();
