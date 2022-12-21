@@ -11,60 +11,60 @@
 
 class AppInterface {
 protected:
-    const char* __name = nullptr;
     bool __exit = false;
 public:
     AppInterface() { }
+    inline static const char* name = "AppInterface";
 
     virtual void setup() { }
     virtual void loop() { }
-    virtual inline const char* name() { return __name; }
-    virtual inline void exit() { __exit = true; }
+    virtual inline bool exit() { return __exit; }
 };
 
 class __UIHelper: public AppInterface {
 private:
-  Adafruit_SSD1306& display;
   int16_t menuCursor = 0;
-
-  UIWindow* window;
-  UIList* list;
+  int16_t selectedItem = 0;  // 0: not selected yet
+  UIWindow window;
+  UIList list;
 public:
-  __UIHelper(Adafruit_SSD1306& display): display(display) {
-    window = new UIWindow();
-    list   = new UIList();
-    window->setWindowMargin(10);
-    list->setPosition(window->innerStartX()+1, window->innerStartY()+1);
-    list->setSize(window->innerWidth()-2, window->innerHeight()-2);
+  __UIHelper() {
+    window.setWindowMargin(10);
+    list.setPosition(window.innerStartX()+1, window.innerStartY()+1);
+    list.setSize(window.innerWidth()-2, window.innerHeight()-2);
     static const char* items[] = {"kiwi", "Dodo", "peacock", "Sparrow", "Pigeon", "crow", "exit"};  // default
-    list->setItems(nullptr, sizeof(items) / sizeof(const char*));
-    // list->setItems(items, sizeof(items) / sizeof(const char*));
-    list->setCursor(menuCursor);
+    list.setItems(nullptr, sizeof(items) / sizeof(const char*));
+    list.setCursor(menuCursor);
+  }
+  inline static const char* name = "UIHelper";
+  void setup() {
+    // nothing...
   }
   void loop() {
     openMenu();
   }
-  int8_t openMenu() {
+  int16_t openMenu() {
     menuCursor += REAgent.getOffset();
-    menuCursor = (menuCursor+list->itemListLength()) % (list->itemListLength());
-    list->setCursor(menuCursor);
+    menuCursor = (menuCursor+list.itemListLength()) % (list.itemListLength());
+    list.setCursor(menuCursor);
 
-    window->draw();
-    list->draw();
-    return !SWAgent.isClicked()? 0 : (menuCursor+1);
+    window.draw();
+    list.draw();
+    selectedItem = !SWAgent.isClicked()? 0 : (menuCursor+1);
+    return selectedItem;
+  }
+  inline int16_t getSelectedItem() {
+    return selectedItem;
   }
   void setMenuItems(const char** items, size_t size) {
-    list->setItems(items, size);
+    list.setItems(items, size);
   }
-};
+} UIHelper;
 
 
 
-class Dice : AppInterface {
+class Dice : public AppInterface {
 private:
-    const char* name = "Dice";
-    Adafruit_SSD1306& display;
-
     const unsigned long rollingPeriod = 1000;  // ms
     // uint16_t nCategory = 6;
     uint16_t nCategory = 256;
@@ -117,12 +117,13 @@ private:
     // for Debug
     const char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
 public:
-    Dice(Adafruit_SSD1306& displayPtr): display(displayPtr) { }
+    Dice() { }
+    inline static const char* name = "Dice";
+    
     // for denug
-    __UIHelper* UIHelper;
     void setup() {
       // set the UI helper menu item and functions
-      UIHelper->setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
+      UIHelper.setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
     }
     void loop() {
       if(mode != Mode::setting) {
@@ -182,9 +183,13 @@ public:
 
       // test
       if(mode==Mode::setting) { 
-        int funcN = UIHelper->openMenu();
+        int funcN = UIHelper.openMenu();
         if(funcN != 0){
           Serial.println(String("f: ") + String(funcN));
+          if(funcN == 4) {  // menu "exit"
+            __exit = true;
+            return ;
+          }
           mode = Mode::standBy;
         }
       }
@@ -207,24 +212,27 @@ public:
           break;
       }
     }
-    void openMenu() {
-
-    }
 };
 
 
-class Demo0: AppInterface {
+class Demo0: public AppInterface {
 private:
-    const char* __name = "DEMO0";
-
     bool pause = 0;
 public:
-    Demo0() { }
+    // Demo0() { }
+    inline static const char* name = "Demo0";
     void setup() {
       
     }
 
     void loop() {
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(display.width()-6*5, display.height() - 8);
+      display.print(pause? "pause" : "not");
+      display.setCursor(display.width()-6*4, display.height() - 8*2);
+      display.print(m); display.print(' ');  display.print(s);
+
       if(SWAgent.isClicked() && SWAgent.getLongPressDeltaTime() < 3000) {
         cli();
         if(pause) {
@@ -241,12 +249,29 @@ public:
         pause = !pause;
         sei();
       }
+      if(s >= 5) {
+        __exit = true;
+        cli();
+        // start at next loop
+        pause = false;
+        TCCR2B &= ~(1 << CS22);
+        TIMSK2 &= ~(1 << OCIE2A);  // disable timer compare interrupt
+        TCNT2  = 0;  // set counter value to 0
+        ms = 0;  s = 0;  m = 0;
+        sei();
+        // TCCR2B |= (1 << CS22);
+        // TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
+        // ^ have to run two following line to start timer...////////////////////
+        return ;
+      }
       display.invertDisplay(pause);
 
       display.setTextSize(2);  // Draw 2X-scale text // 6,8 "12,16"
       display.setTextColor(SSD1306_WHITE);
       display.setCursor(12+count, display.height()/2 - 8);
-      display.println(String(m) + ":" + String(s) + ":" + String(ms));
+      static char buffer[12] = "";
+      sprintf(buffer, "%d:%d:%d", m, s, ms);
+      display.print(buffer);
 
       if(SWAgent.isHolding()) {
         display.setTextSize(1);  // Draw 2X-scale text // 6,8

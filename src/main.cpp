@@ -21,7 +21,69 @@
 #include <multiApp.h>
 #include <display.h>
 
-Demo0 demo0;
+// Demo0 demo0;
+
+class MultiAppManager: AppInterface {
+private:
+  AppInterface* app = nullptr;
+  const char* menuItems[4] = { "Demo0", "Dice", "Menu" };
+public:
+  inline static const char* name = "MultiAppManager";
+
+  MultiAppManager() {
+    load(1);
+  }
+
+  void setup() {
+    if(app) {
+      app->setup();
+    }
+  }
+
+  void loop() {
+    if(app) {
+      app->loop();
+      // checkc app->exit()
+      if(app->exit()){
+        load(0);
+      }
+    }else {
+      UIHelper.loop();
+      if(UIHelper.getSelectedItem()) {
+        load(UIHelper.getSelectedItem());
+      }
+    }
+  }
+
+//  EXAMPLE
+  void load(uint8_t appIdx = 0) {
+    if(app) {
+      delete app;  ///////////////
+      app = nullptr;
+    }
+    if(0){}  // skip
+    else if(appIdx == 0) {
+      setMenu();
+      // app = menu;
+    }
+    else if(appIdx == 1) {
+      app = new Demo0();
+      app->setup();
+    }
+    else if(appIdx == 2){
+      app = new Dice();
+      app->setup();
+    }
+    else {
+      setMenu();
+      // app = menu
+    }
+  }
+  void setMenu() {
+    UIHelper.setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
+  }
+  
+} multi;
 
 void setup() {
   // ========== init Serial ==========
@@ -58,9 +120,10 @@ void setup() {
   // ========== set timer2 interrupt at 1kHz end ==========
 
   
-
+  multi.setup();
   display.display();
 }
+
 
 
 
@@ -75,8 +138,9 @@ void loop() {
 
   
 
-  demo0.loop();
+  // demo0.loop();
   // UIHelper0.openMenu();
+  multi.loop();
   
   // routine of display
   display.display();
