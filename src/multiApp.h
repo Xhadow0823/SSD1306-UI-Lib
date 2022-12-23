@@ -28,13 +28,15 @@ private:
   int16_t selectedItem = 0;  // 0: not selected yet
   UIWindow window;
   UIList list;
+  // inline static const char* items[] = {"kiwi", "Dodo", "peacock", "Sparrow", "Pigeon", "crow", "exit"};  // default
 public:
   __UIHelper() {
-    window.setWindowMargin(10);
+    window.setWindowMargin(8);  // for debug
+    // window.setWindowMargin(4);
     list.setPosition(window.innerStartX()+1, window.innerStartY()+1);
     list.setSize(window.innerWidth()-2, window.innerHeight()-2);
-    static const char* items[] = {"kiwi", "Dodo", "peacock", "Sparrow", "Pigeon", "crow", "exit"};  // default
-    list.setItems(nullptr, sizeof(items) / sizeof(const char*));
+    // list.setItems(items, sizeof(items) / sizeof(const char*));  // for debug
+    list.setItems(nullptr, 0);
     list.setCursor(menuCursor);
   }
   inline static const char* PROGMEM name = "UIHelper";

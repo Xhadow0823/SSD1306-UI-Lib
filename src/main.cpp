@@ -25,12 +25,10 @@
 size_t calcFreeMemorySpaceSize() {
   unsigned int target = 512, delta = 512;
   unsigned char* spacePtr = nullptr;
-
   while(!(delta <= 0)) {
     spacePtr = (unsigned char*)malloc((size_t)target * sizeof(unsigned char));
     if(spacePtr) {  // free space size > target
       target += delta;
-
       free(spacePtr);
     }else {         // free space size < target
       delta = delta / 2;
@@ -38,6 +36,12 @@ size_t calcFreeMemorySpaceSize() {
     }
   }
   return (size_t)target;
+}
+
+size_t calcFreeMemory2() {
+  extern int __heap_start, *__brkval;
+  uint8_t v;
+  return (int)&v - (__brkval==0? (int) &__heap_start : (int) __brkval);  // include the heap
 }
 
 class MultiAppManager: AppInterface {
@@ -54,6 +58,7 @@ public:
     // load(2), the delete operator will not work when delete both Demo0 and Dice
     // load(2);
     // Conclusion: in constructor, every memory new here will not be a dynamic allocated memory but a static member...
+    // maybe the original memory become a "Hole" (?
   }
 
   void setup() {
@@ -123,6 +128,7 @@ void setup() {
   }
   // ========== init SSD1306 end ==========
 
+  // move to REAgent
   // ========== init rotary encoder ==========
   #define CLK 2
   #define DT 3
@@ -137,10 +143,9 @@ void setup() {
 
   
   Serial.println(F("[START]"));
-
   multi.setup();
+
   display.display();
-  
 }
 
 
@@ -148,20 +153,14 @@ void setup() {
 
 void loop() {
   // routine of agents
-  SWAgent.clearClicked();
   SWAgent.update();
-  REAgent.clearOffset();
   REAgent.update();
 
   display.clearDisplay();
 
-  
-
-  // demo0.loop();
-  // UIHelper0.openMenu();
   multi.loop();
   
-
+  // show free memory space
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(display.width()-6*3, 0);
@@ -169,7 +168,6 @@ void loop() {
 
   // routine of display
   display.display();
-
   // routine of delay
   delay(10);
 }

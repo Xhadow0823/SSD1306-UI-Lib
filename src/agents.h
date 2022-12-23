@@ -11,6 +11,7 @@ private:
   bool __isHolding = false;
 public:
   void update() {
+    clearClicked();
     if(clicked) {
       clicked = false;  // clear ISR's buffer !!  // TODO: change variable name of all ISRs!!!
       __clicked = true;
@@ -34,6 +35,7 @@ public:
   inline unsigned long getLongPressDeltaTime() {  // TODO: get better name, maybe
     return __longPressDeltaTime;
   }
+  // called before each loop
   inline void clearClicked() {
       __clicked = false;
   }
@@ -45,12 +47,14 @@ private:
   int8_t offset = 0;
 public:
   inline void update() {
+    clearOffset();
     offset += (int8_t)(count - lastCount);
     lastCount = count;
   }
   inline int8_t getOffset() {
     return offset;
   }
+  // called before each loop
   inline void clearOffset() {
     offset = 0;
   }
@@ -58,7 +62,6 @@ public:
 
 class __TimerAgent {
 private:
-
 public:
   inline void init() {
     stop();
@@ -104,7 +107,6 @@ public:
   inline void clearReg() {
     m = 0; s = 0; ms = 0;
   }
-
 } TimerAgent;
 
 #endif
