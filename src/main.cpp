@@ -49,7 +49,7 @@ private:
   AppInterface* app = nullptr;
   
 public:
-  const PROGMEM char* menuItems[3] = { "Demo0", "Dice", "Menu" };
+  const PROGMEM char* menuItems[4] = { "Demo0", "Dice", "Pomodoro", "Menu" };
   inline static const char* PROGMEM name = "MultiAppManager";
 
   MultiAppManager() {
@@ -65,7 +65,8 @@ public:
     if(app) {
       app->setup();
     }else {
-      load(1);  // Good
+      // load(1);  // Good
+      load(3);  // Good
     }
   }
 
@@ -102,6 +103,10 @@ public:
     }
     else if(appIdx == 2){
       app = new Dice();
+      app->setup();
+    }
+    else if(appIdx == 3) {
+      app = new Pomodoro();
       app->setup();
     }
     else {

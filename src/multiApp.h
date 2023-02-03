@@ -268,4 +268,148 @@ public:
     }
 };
 
+
+class Pomodoro: public AppInterface {
+private:
+  // register
+  uint8_t countDownFrom = 0;
+  bool isBreak = false;
+  int8_t cntMin = 0, cntSec = 0;  // count down to show
+  bool isPause = true;
+  uint8_t nPomo = 0;  // if nPomo == (longBreakInterval=4), then break for longBreakTime  // add 1 when a pomo is over
+  bool isMenuOpen = false;
+  bool isCurrentOver = false;
+  
+  // basic setting
+  // uint8_t pomoTime = 25, shortBreakTime = 5, longBreakTime = 15, longBreakInterval = 4;
+  uint8_t pomoTime = 2, shortBreakTime = 1, longBreakTime = 2, longBreakInterval = 2;
+  bool showSec = true;
+
+  // temp
+  char countDownStringBuffer[8] = "";
+  uint16_t lastBlinkTime = 0;
+  bool blinkDisappear = false;
+
+public: 
+inline static const char* PROGMEM name = "Pomodoro";
+void setup() {
+  TimerAgent.stop();
+  reset();
+}
+void loop() {
+  // handle click event
+  if(SWAgent.isClicked()) {
+    if(SWAgent.getLongPressDeltaTime() < 1000) {  // click
+      if(isPause) {
+        if(isCurrentOver) {
+          gotoNext(); // update regs and restart timer
+        }else {
+          TimerAgent.resume();
+        }
+        isPause = false;
+      }
+    }else {  // long click
+      TimerAgent.pause();
+      isPause = true;
+      // open menu
+    }
+  }
+  // check time
+  updateCountDownTimer();
+  // draw
+  draw();
+  drawDebugRect();
+}
+void gotoNext() {
+  if(!isBreak) {  // last period is pomo!
+    if(nPomo+1 >= longBreakInterval) {  // nPomo start from 0
+      countDownFrom = longBreakTime;
+      nPomo = 0;
+    }else {
+      countDownFrom = shortBreakTime;
+    }
+  }else {  // last period is break
+    countDownFrom = pomoTime;
+    nPomo++;
+  }
+  isBreak = !isBreak;
+  isCurrentOver = false;
+  // activate count down timer
+  TimerAgent.restart();
+}
+void updateCountDownTimer() {
+  // a litte weird here...
+  cntSec = (60 - s) % 60;
+  cntMin = countDownFrom - m + (cntSec==0?0:-1);
+  if(m >= countDownFrom) {  // time is up
+    cntMin = 0;  cntSec = 0;
+    isCurrentOver = true;
+    isPause = true;
+    TimerAgent.pause();
+  }
+}
+void draw() {
+  // get the string to show
+  if(showSec) {
+    snprintf(countDownStringBuffer, 8, "%02d:%02d", cntMin, cntSec);
+  }else {
+    snprintf(countDownStringBuffer, 8, "%02d", cntMin);
+  }
+
+  // DEBUG
+  // draw pause symbol
+  const uint8_t margin = 5; const uint8_t pauseSize = 10;
+  if(isPause) {
+    display.fillRect(0+margin, display.height()-margin - pauseSize, pauseSize, pauseSize, SSD1306_WHITE);
+    display.fillRect(0+margin + (pauseSize*0.8/2), display.height()-margin - pauseSize, pauseSize*0.2, pauseSize, SSD1306_BLACK);
+  }
+  // draw over symbol
+  if(isCurrentOver) {
+    display.fillRect(0+margin + pauseSize + margin, display.height()-margin - pauseSize, pauseSize, pauseSize, SSD1306_WHITE);
+  }
+  // draw pomo/break symbol
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setCursor(0+margin + pauseSize + margin + pauseSize + margin, display.height()-margin - 16);
+  display.write(!isBreak? "P" : "B");
+  // draw nPomo
+  display.setCursor(0+margin + pauseSize + margin + pauseSize + margin + 12 + margin, display.height()-margin - 16);
+  display.write( nPomo +'0' );
+
+  // calc
+  if(isPause && isCurrentOver) {
+    uint16_t current = millis();
+    if(current - lastBlinkTime > 200) {
+      lastBlinkTime = current;
+      blinkDisappear = !blinkDisappear;
+    }
+  }else {
+    blinkDisappear = false;
+  }
+  
+  // draw
+  display.setTextSize(2); // 12x16
+  display.setTextColor(blinkDisappear? SSD1306_BLACK : SSD1306_WHITE);
+  display.setCursor( display.width()/2-(strlen(countDownStringBuffer)*(6*2))/2, display.height()/2-(8*2)/2 );
+  display.print(countDownStringBuffer);
+}
+void reset() {
+  countDownFrom = pomoTime;
+  isBreak = false;  isPause = true;  isCurrentOver = false;
+  nPomo = 0;
+}
+void openMenu() {}
+
+void drawDebugRect() {  // DEBUG
+  if(SWAgent.isHolding()) {
+    display.setTextSize(1);  // Draw 2X-scale text // 6,8
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(2, 1);
+    display.print(SWAgent.getLongPressDeltaTime());
+    display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, display.height()-4, 5, SSD1306_WHITE);
+  }
+}
+
+};
+
 #endif
