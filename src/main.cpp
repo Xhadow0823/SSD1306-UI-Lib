@@ -21,7 +21,6 @@
 #include <multiApp.h>
 #include <display.h>
 
-// Demo0 demo0;
 size_t calcFreeMemorySpaceSize() {
   unsigned int target = 512, delta = 512;
   unsigned char* spacePtr = nullptr;
@@ -46,12 +45,13 @@ size_t calcFreeMemory2() {
 
 class MultiAppManager: AppInterface {
 private:
-  AppInterface* app = nullptr;
-  
+  AppInterface* app = nullptr;  
 public:
-  const PROGMEM char* menuItems[4] = { "Demo0", "Dice", "Pomodoro", "Menu" };
-  inline static const char* PROGMEM name = "MultiAppManager";
-
+  // const PROGMEM char* menuItems[4] = { "Demo0", "Dice", "Pomodoro", "Menu" };  // <- wrong way
+  // inline static const char* name PROGMEM = "MultiAppManager";  // not work
+  // const char* name PROGMEM = "MultiAppManager";  // not work
+  
+  inline const char* name() {  return PSTR("MultiAppManager");  }
   MultiAppManager() {
     // load(0), then delete AppInterfece will work when delete Demo0
     // load(1), the delete operator will not work when delete Demo0
@@ -115,6 +115,11 @@ public:
     }
   }
   void setMenu() {
+    const static char string_0[] PROGMEM = "Demo0";
+    const static char string_1[] PROGMEM = "Dice";
+    const static char string_2[] PROGMEM = "Pomodoro";
+    const static char string_3[] PROGMEM = "Menu";
+    const static char * const menuItems[] PROGMEM = { string_0, string_1, string_2, string_3 };
     UIHelper.setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
   }
   

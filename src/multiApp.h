@@ -39,13 +39,16 @@ public:
     list.setItems(nullptr, 0);
     list.setCursor(menuCursor);
   }
-  inline static const char* PROGMEM name = "UIHelper";
+  
+  inline const char* name() {  return PSTR("UIHelper");  }
+
   void setup() {
     // nothing...
   }
   void loop() {
     openMenu();
   }
+  // return selectd index of item (start from 1). return 0 if nothing is selected
   int16_t openMenu() {
     menuCursor += REAgent.getOffset();
     menuCursor = (menuCursor+list.itemListLength()) % (list.itemListLength());
@@ -60,7 +63,7 @@ public:
     return selectedItem;
   }
   /** pointer items MUST be public? */
-  void setMenuItems(const char** items, size_t size) {
+  void setMenuItems(const char* const * items, size_t size) {
     list.setItems(items, size);
   }
 } UIHelper;
@@ -121,12 +124,19 @@ private:
     
 public:
     Dice() { }
-    inline static const char* PROGMEM name = "Dice";
-    // for Debug
-    const PROGMEM char * menuItems[4] = { "Font++", "change mode", "change categories", "exit" };
+    // inline static const char* PROGMEM name = "Dice";
+    inline const char* name() {  return PSTR("Dice");  }
+    // const PROGMEM char * menuItems[4] = { "font size", "change mode", "change categories", "exit" };
     // for denug
     void setup() {
       // set the UI helper menu item and functions
+      // const static char * const menuItems[4] PROGMEM = { "font size", "change mode", "change category", "exit" };  // <- wrong way, this will use SRAM space
+      // const static char * const menuItems[4] PROGMEM = { PSTR("font size"), PSTR("change mode"), PSTR("change category"), PSTR("exit") };  // not work
+      const static char string_0[] PROGMEM = "font size";
+      const static char string_1[] PROGMEM = "change mode";
+      const static char string_2[] PROGMEM = "change category";
+      const static char string_3[] PROGMEM = "exit";
+      const static char * const menuItems[] PROGMEM = { string_0, string_1, string_2, string_3 };
       UIHelper.setMenuItems(menuItems, sizeof(menuItems)/sizeof(const char*));
       // UIHelper.setMenuItems(nullptr, sizeof(menuItems)/sizeof(const char*));
     }
@@ -227,7 +237,8 @@ private:
     bool pause = 0;
 public:
     // Demo0() { }
-    inline static const char* PROGMEM name = "Demo0";
+    inline const char* name() {  return PSTR("Demo0");  }
+
     void setup() {
       TimerAgent.stop();
       pause = true;
@@ -267,8 +278,7 @@ public:
       }
     }
 };
-
-
+  
 class Pomodoro: public AppInterface {
 private:
   // register
@@ -281,8 +291,8 @@ private:
   bool isCurrentOver = false;
   
   // basic setting
-  // uint8_t pomoTime = 25, shortBreakTime = 5, longBreakTime = 15, longBreakInterval = 4;
-  uint8_t pomoTime = 2, shortBreakTime = 1, longBreakTime = 2, longBreakInterval = 2;
+  uint8_t pomoTime = 25, shortBreakTime = 5, longBreakTime = 15, longBreakInterval = 4;
+  // uint8_t pomoTime = 3, shortBreakTime = 1, longBreakTime = 2, longBreakInterval = 3;
   bool showSec = true;
 
   // temp
@@ -290,15 +300,17 @@ private:
   uint16_t lastBlinkTime = 0;
   bool blinkDisappear = false;
 
-public: 
-inline static const char* PROGMEM name = "Pomodoro";
+public:
+inline const char* name() {  return PSTR("Pomodoro");  }
+
 void setup() {
   TimerAgent.stop();
   reset();
+  setMenuItems();
 }
 void loop() {
   // handle click event
-  if(SWAgent.isClicked()) {
+  if(SWAgent.isClicked()   && !isMenuOpen) {  // todo: refactor this block
     if(SWAgent.getLongPressDeltaTime() < 1000) {  // click
       if(isPause) {
         if(isCurrentOver) {
@@ -312,25 +324,27 @@ void loop() {
       TimerAgent.pause();
       isPause = true;
       // open menu
+      isMenuOpen = true;
+      SWAgent.clearClicked();  // search a better solution for open menu problem
     }
   }
   // check time
   updateCountDownTimer();
   // draw
   draw();
+  drawMenu();
   drawDebugRect();
 }
 void gotoNext() {
   if(!isBreak) {  // last period is pomo!
     if(nPomo+1 >= longBreakInterval) {  // nPomo start from 0
       countDownFrom = longBreakTime;
-      nPomo = 0;
     }else {
       countDownFrom = shortBreakTime;
     }
   }else {  // last period is break
     countDownFrom = pomoTime;
-    nPomo++;
+    (++nPomo) %= longBreakInterval;
   }
   isBreak = !isBreak;
   isCurrentOver = false;
@@ -393,12 +407,52 @@ void draw() {
   display.setCursor( display.width()/2-(strlen(countDownStringBuffer)*(6*2))/2, display.height()/2-(8*2)/2 );
   display.print(countDownStringBuffer);
 }
+void setMenuItems() {
+  const static char string_0[] PROGMEM = "close";
+  const static char string_1[] PROGMEM = "skip";
+  const static char string_2[] PROGMEM = "setting";
+  const static char string_3[] PROGMEM = "exit";
+  const static char * const mainMenuItems[] PROGMEM = { string_0, string_1, string_2, string_3 };
+  // UIHelper.setMenuItems(nullptr, 4);
+  UIHelper.setMenuItems(mainMenuItems, 4);
+}
+void drawMenu() {
+  // menu:
+  //   1. close
+  //   2. skip
+  //   3. setting
+  //     1. pomodoro time
+  //     2. short break time
+  //     3. long break time
+  //     4. long break interval
+  //   4. exit
+  if(isMenuOpen) {
+    UIHelper.openMenu();
+    if(SWAgent.isClicked()) {
+      switch(UIHelper.getSelectedItem()) {
+        default:
+        case 1: // close menu
+          isMenuOpen = false;
+          break;
+        case 2: // skip
+          isMenuOpen = false;
+          isCurrentOver = true;  // wait for click to call gotoNext()
+          break;
+        case 3: // setting
+          // todo: setting 
+          break;
+        case 4: // exit
+          __exit = true;
+          break;
+      }
+    }
+  }
+}
 void reset() {
   countDownFrom = pomoTime;
   isBreak = false;  isPause = true;  isCurrentOver = false;
   nPomo = 0;
 }
-void openMenu() {}
 
 void drawDebugRect() {  // DEBUG
   if(SWAgent.isHolding()) {
