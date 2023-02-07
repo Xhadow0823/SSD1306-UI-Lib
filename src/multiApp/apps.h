@@ -1,73 +1,10 @@
-#ifndef __MULTI_APP_H__
-    #define __MULTI_APP_H__
+#ifndef __MULTIAPP_APPS_H__
+  #define __MULTIAPP_APPS_H__
 #include <Arduino.h>
-#include <agents.h>
-#include <string.h>
 #include <UI.h>
-#include <display.h>
-
-// TODO: make UIHelper better
-// TODO: add a multi-app manager to run two apps
-
-class AppInterface {
-protected:
-    bool __exit = false;
-public:
-    AppInterface() { }
-    virtual ~AppInterface() { }  // IMPORTANT
-    inline static const char* PROGMEM name = "AppInterface";
-
-    virtual void setup() { }
-    virtual void loop() { }
-    virtual inline bool exit() { return __exit; }
-};
-
-class __UIHelper: public AppInterface {
-private:
-  int16_t menuCursor = 0;
-  int16_t selectedItem = 0;  // 0: not selected yet
-  UIWindow window;
-  UIList list;
-  // inline static const char* items[] = {"kiwi", "Dodo", "peacock", "Sparrow", "Pigeon", "crow", "exit"};  // default
-public:
-  __UIHelper() {
-    window.setWindowMargin(8);  // for debug
-    // window.setWindowMargin(4);
-    list.setPosition(window.innerStartX()+1, window.innerStartY()+1);
-    list.setSize(window.innerWidth()-2, window.innerHeight()-2);
-    // list.setItems(items, sizeof(items) / sizeof(const char*));  // for debug
-    list.setItems(nullptr, 0);
-    list.setCursor(menuCursor);
-  }
-  
-  inline const char* name() {  return PSTR("UIHelper");  }
-
-  void setup() {
-    // nothing...
-  }
-  void loop() {
-    openMenu();
-  }
-  // return selectd index of item (start from 1). return 0 if nothing is selected
-  int16_t openMenu() {
-    menuCursor += REAgent.getOffset();
-    menuCursor = (menuCursor+list.itemListLength()) % (list.itemListLength());
-    list.setCursor(menuCursor);
-
-    window.draw();
-    list.draw();
-    selectedItem = !SWAgent.isClicked()? 0 : (menuCursor+1);
-    return selectedItem;
-  }
-  inline int16_t getSelectedItem() {
-    return selectedItem;
-  }
-  /** pointer items MUST be public? */
-  void setMenuItems(const char* const * items, size_t size) {
-    list.setItems(items, size);
-  }
-} UIHelper;
-
+#include <multiApp/AppInterface.h>
+#include <multiApp/core.h>
+#include <multiApp/UIHelper.h>
 
 
 class Dice : public AppInterface {
@@ -230,7 +167,6 @@ public:
       }
     }
 };
-
 
 class Demo0: public AppInterface {
 private:
@@ -463,7 +399,7 @@ void drawDebugRect() {  // DEBUG
     display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, display.height()-4, 5, SSD1306_WHITE);
   }
 }
-
 };
+
 
 #endif
