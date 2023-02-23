@@ -5,6 +5,7 @@
 #include <multiApp/AppInterface.h>
 #include <multiApp/core.h>
 #include <multiApp/UIHelper.h>
+#include <multiApp/buzzerHelper.h>
 
 
 class Dice : public AppInterface {
@@ -236,6 +237,8 @@ private:
   uint16_t lastBlinkTime = 0;
   bool blinkDisappear = false;
 
+  // helper
+  BuzzerHelper buzzer = BuzzerHelper();
 public:
 inline const char* name() {  return PSTR("Pomodoro");  }
 
@@ -243,6 +246,7 @@ void setup() {
   TimerAgent.stop();
   reset();
   setMenuItems();
+  buzzer.setTable(8, 1,0,1,0,0,0,0,0);  // █░█░░░░░
 }
 void loop() {
   // handle click event
@@ -298,6 +302,7 @@ void updateCountDownTimer() {
     TimerAgent.pause();
   }
 }
+uint8_t interval = 125;
 void draw() {
   // get the string to show
   if(showSec) {
@@ -333,8 +338,15 @@ void draw() {
       lastBlinkTime = current;
       blinkDisappear = !blinkDisappear;
     }
+    buzzer.play(current);
   }else {
     blinkDisappear = false;
+    buzzer.stop();
+  }
+  // debug for buzzer
+  interval = constrain(interval+REAgent.getOffset(), 0, 255);
+  if(REAgent.getOffset()) {
+    Serial.println( buzzer.setInterval(interval) );
   }
   
   // draw
@@ -378,6 +390,7 @@ void drawMenu() {
           // todo: setting 
           break;
         case 4: // exit
+          // digitalWrite(11, LOW);
           __exit = true;
           break;
       }

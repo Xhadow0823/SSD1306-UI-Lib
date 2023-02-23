@@ -12,7 +12,7 @@
  *                              D8                A1
  *                              D9                A0
  *                             D10     ......     REF
- *                             D11     :    :     3V3 -- not working now...
+ *                  Buzzer --- D11     :    :     3V3 -- not working now...
  *                             D12 ****:    :**** D13
 */
 #include <Arduino.h>
