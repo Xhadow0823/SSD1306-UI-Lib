@@ -388,6 +388,7 @@ void drawMenu() {
           break;
         case 3: // setting
           // todo: setting 
+          display.setRotation( (display.getRotation()+1)%4 );
           break;
         case 4: // exit
           // digitalWrite(11, LOW);
