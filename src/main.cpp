@@ -3,8 +3,8 @@
  *                             RX0                GND -- Battery GND
  *                             RST                RST
  *                             GND                5V --- Battery 5V
- *              Encoder CLK     D2                A7
- *              Encoder CLK --- D3                A6
+ *              Encoder CLK --- D2                A7
+ *               Encoder SW --- D3                A6
  *               Encoder DT --- D4  Arduino Nano  A5 --- OLED 128x64 SCK
  *       Vibration Motor IN --- D5   ATmega328P   A4 --- OLED 128x64 SDA
  *                              D6                A3
