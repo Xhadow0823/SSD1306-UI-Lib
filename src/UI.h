@@ -1,25 +1,21 @@
 #ifndef __UI_H__
   #define __UI_H__
 #include <Arduino.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <agents.h>
+#include <display.h>
 
 class UIComponentInterface {
 protected:
-  Adafruit_SSD1306& display;
 public:
-  UIComponentInterface(Adafruit_SSD1306& display): display(display) { }
+  UIComponentInterface() { }
   virtual void draw() { }
 };
 
 class UIWindow: public UIComponentInterface {
 private:
-  // Adafruit_SSD1306& display;  // declared in parent class
-
   int8_t windowMargin = 2;
 public:
-  UIWindow(Adafruit_SSD1306& display): UIComponentInterface(display) { }
+  UIWindow() { }
 
   void draw() {
     display.fillRect(windowMargin, windowMargin, width(), height(), SSD1306_BLACK);
@@ -61,7 +57,7 @@ private:
   const char** itemListPtr = nullptr;
   uint8_t itemListSize = 0;
 public:
-  UIList(Adafruit_SSD1306& display): UIComponentInterface(display) { }
+  UIList() { }
   void draw() {
     // update()...
     // cursor += REAgent.getOffset();
@@ -87,8 +83,12 @@ public:
       display.setTextSize(sizeScale);
       display.setTextColor(highLight? SSD1306_BLACK: SSD1306_WHITE);
       display.setCursor(_x + 2, _y + 2 + lineHeight*i);
+      char pgmBuffer[16];
+      strncpy_P(pgmBuffer, (char*)pgm_read_word(&(itemListPtr[i+indexOffset])), 16);  // https://cplusplus.com/reference/cstring/strncpy/
+      pgmBuffer[15] = '\0';
+
       char buffer[32] = "";
-      sprintf(buffer, "%2d.%s", (i+indexOffset+1), itemListPtr==nullptr? "BUTT" : itemListPtr[i+indexOffset]);
+      snprintf(buffer, 32, "%2d.%s", (i+indexOffset+1), itemListPtr==nullptr? "BUTT" : pgmBuffer);
       display.print(buffer);
 
       // debug
@@ -106,7 +106,7 @@ public:
   inline void setSize(int16_t width, int16_t height) {
     _width = width;  _height = height;
   }
-  inline void setItems(void* items, uint8_t size) {
+  inline void setItems(const void* items, uint8_t size) {
     itemListPtr = (const char**)items;
     itemListSize = size;
   }
