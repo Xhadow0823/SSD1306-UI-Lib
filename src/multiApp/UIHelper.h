@@ -51,6 +51,9 @@ public:
   void setMenuItems(const char* const * items, size_t size) {
     list.setItems(items, size);
   }
+  inline uint16_t getMenuLength() {
+    return list.itemListLength();
+  }
 } UIHelper;
 
 #endif

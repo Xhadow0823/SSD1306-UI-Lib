@@ -6,7 +6,7 @@
 #include <multiApp/core.h>
 #include <multiApp/UIHelper.h>
 #include <multiApp/buzzerHelper.h>
-
+#include <eepromAgent.h>
 
 class Dice : public AppInterface {
 private:
@@ -227,10 +227,14 @@ private:
   bool isMenuOpen = false;
   bool isCurrentOver = false;
   
-  // basic setting
-  uint8_t pomoTime = 25, shortBreakTime = 5, longBreakTime = 15, longBreakInterval = 4;
-  // uint8_t pomoTime = 3, shortBreakTime = 1, longBreakTime = 2, longBreakInterval = 3;
-  bool showSec = true;
+  struct Config {  // save in eeprom
+    uint8_t displayRotation;  // 0
+    uint8_t pomoTime,          // 25
+            shortBreakTime,    // 5
+            longBreakTime,     // 15
+            longBreakInterval; // 4
+    bool showSec;  // true
+  };
 
   // temp
   char countDownStringBuffer[8] = "";
@@ -243,10 +247,15 @@ public:
 inline const char* name() {  return PSTR("Pomodoro");  }
 
 void setup() {
-  TimerAgent.stop();
-  reset();
+  // initialize all status
+  initialize();
+  // set all components
   setMenuItems();
   buzzer.setTable(8, 1,0,1,0,0,0,0,0);  // █░█░░░░░
+
+  // initialize with config
+  Config config = getConfig();
+  display.setRotation(config.displayRotation);
 }
 void loop() {
   // handle click event
@@ -276,19 +285,21 @@ void loop() {
   drawDebugRect();
 }
 void gotoNext() {
+  Config config = getConfig();
   if(!isBreak) {  // last period is pomo!
-    if(nPomo+1 >= longBreakInterval) {  // nPomo start from 0
-      countDownFrom = longBreakTime;
+    if(nPomo+1 >= config.longBreakInterval) {  // nPomo start from 0
+      countDownFrom = config.longBreakTime;
     }else {
-      countDownFrom = shortBreakTime;
+      countDownFrom = config.shortBreakTime;
     }
   }else {  // last period is break
-    countDownFrom = pomoTime;
-    (++nPomo) %= longBreakInterval;
+    // countDownFrom = pomoTime;
+    countDownFrom = config.pomoTime;
+    (++nPomo) %= config.longBreakInterval;
   }
   isBreak = !isBreak;
   isCurrentOver = false;
-  // activate count down timer
+  // reactivate count down timer
   TimerAgent.restart();
 }
 void updateCountDownTimer() {
@@ -305,7 +316,7 @@ void updateCountDownTimer() {
 uint8_t interval = 125;
 void draw() {
   // get the string to show
-  if(showSec) {
+  if(getConfig().showSec) {  // is this getConfig too slow ?
     snprintf(countDownStringBuffer, 8, "%02d:%02d", cntMin, cntSec);
   }else {
     snprintf(countDownStringBuffer, 8, "%02d", cntMin);
@@ -355,51 +366,11 @@ void draw() {
   display.setCursor( display.width()/2-(strlen(countDownStringBuffer)*(6*2))/2, display.height()/2-(8*2)/2 );
   display.print(countDownStringBuffer);
 }
-void setMenuItems() {
-  const static char string_0[] PROGMEM = "close";
-  const static char string_1[] PROGMEM = "skip";
-  const static char string_2[] PROGMEM = "setting";
-  const static char string_3[] PROGMEM = "exit";
-  const static char * const mainMenuItems[] PROGMEM = { string_0, string_1, string_2, string_3 };
-  // UIHelper.setMenuItems(nullptr, 4);
-  UIHelper.setMenuItems(mainMenuItems, 4);
-}
-void drawMenu() {
-  // menu:
-  //   1. close
-  //   2. skip
-  //   3. setting
-  //     1. pomodoro time
-  //     2. short break time
-  //     3. long break time
-  //     4. long break interval
-  //   4. exit
-  if(isMenuOpen) {
-    UIHelper.openMenu();
-    if(SWAgent.isClicked()) {
-      switch(UIHelper.getSelectedItem()) {
-        default:
-        case 1: // close menu
-          isMenuOpen = false;
-          break;
-        case 2: // skip
-          isMenuOpen = false;
-          isCurrentOver = true;  // wait for click to call gotoNext()
-          break;
-        case 3: // setting
-          // todo: setting 
-          display.setRotation( (display.getRotation()+1)%4 );
-          break;
-        case 4: // exit
-          // digitalWrite(11, LOW);
-          __exit = true;
-          break;
-      }
-    }
-  }
-}
-void reset() {
-  countDownFrom = pomoTime;
+
+
+void initialize() {
+  TimerAgent.stop();
+  countDownFrom = getConfig().pomoTime;
   isBreak = false;  isPause = true;  isCurrentOver = false;
   nPomo = 0;
 }
@@ -413,6 +384,72 @@ void drawDebugRect() {  // DEBUG
     display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, display.height()-4, 5, SSD1306_WHITE);
   }
 }
+
+// ========== menu ==========
+void drawMenu() {
+  if(isMenuOpen) {
+    UIHelper.openMenu();
+    if(SWAgent.isClicked()) {
+      switch(UIHelper.getSelectedItem()) {
+        default:
+        case 1: // close menu
+          isMenuOpen = false;
+          break;
+        case 2: // skip
+          isMenuOpen = false;
+          isCurrentOver = true;  // wait for click to call gotoNext()
+          break;
+        case 3: // rotate
+          menuDoRotate();
+          break;
+        case 4: // reset
+          menuDoReset();
+          Serial.println(F("reset config"));
+          break;
+        case 5: // exit
+          // digitalWrite(11, LOW);
+          __exit = true;
+          break;
+      }
+    }
+  }
+}
+void setMenuItems() {
+  const static char string_0[] PROGMEM = "close";
+  const static char string_1[] PROGMEM = "skip";
+  const static char string_2[] PROGMEM = "rotate";
+  const static char string_3[] PROGMEM = "reset";
+  const static char string_4[] PROGMEM = "exit";
+  const static char * const mainMenuItems[] PROGMEM = { string_0, string_1, string_2, string_3, string_4 };
+  UIHelper.setMenuItems(mainMenuItems, 5);
+}
+void menuDoRotate() {
+  uint8_t temp = 0;
+  display.setRotation(temp = (display.getRotation()+1)%4);
+  Config config =  getConfig();
+  config.displayRotation = temp;
+  updateConfig(config);
+}
+void menuDoReset() {
+  resetConfig();
+  initialize();
+}
+// ========== menu end ==========
+
+// ========== config management ==========
+inline const struct Config getConfig() const {
+  Config temp;
+  EEPROM.get(EEPROM_POMODORO_ADDRESS_START_AT, temp);
+  return temp;
+}
+inline const struct Config resetConfig() const {
+  Config temp{ 0, 25, 5, 15, 4, true };
+  return EEPROM.put(EEPROM_POMODORO_ADDRESS_START_AT, temp);
+}
+inline const struct Config updateConfig(const struct Config config) const {
+  return EEPROM.put(EEPROM_POMODORO_ADDRESS_START_AT, config);
+}
+// ========== config management end ==========
 };
 
 
