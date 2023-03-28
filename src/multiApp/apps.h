@@ -247,15 +247,8 @@ public:
 inline const char* name() {  return PSTR("Pomodoro");  }
 
 void setup() {
-  // initialize all status
+  // initialize everything
   initialize();
-  // set all components
-  setMenuItems();
-  buzzer.setTable(8, 1,0,1,0,0,0,0,0);  // █░█░░░░░
-
-  // initialize with config
-  Config config = getConfig();
-  display.setRotation(config.displayRotation);
 }
 void loop() {
   // handle click event
@@ -369,10 +362,17 @@ void draw() {
 
 
 void initialize() {
+  // initialize all status
   TimerAgent.stop();
   countDownFrom = getConfig().pomoTime;
   isBreak = false;  isPause = true;  isCurrentOver = false;
   nPomo = 0;
+  // load config
+  Config config = getConfig();
+  display.setRotation(config.displayRotation);
+  // set all components
+  setMenuItems();
+  buzzer.setTable(8, 1,0,1,0,0,0,0,0);  // █░█░░░░░
 }
 
 void drawDebugRect() {  // DEBUG
