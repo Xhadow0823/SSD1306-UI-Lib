@@ -34,7 +34,7 @@ public:
       app->setup();
     }else {
       // load(1);  // Good
-      load(3);  // Good
+      load(1);  // Good
     }
   }
 

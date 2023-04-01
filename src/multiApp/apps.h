@@ -169,51 +169,120 @@ public:
     }
 };
 
+
 class Demo0: public AppInterface {
 private:
-    bool pause = 0;
+  // registers
+  enum State{
+    pause, stop, play
+  } state;
 public:
-    // Demo0() { }
-    inline const char* name() {  return PSTR("Demo0");  }
+  // Demo0() { }
+  inline const char* name() {  return PSTR("Demo0");  }
 
-    void setup() {
-      TimerAgent.stop();
-      pause = true;
-    }
+  void setup() {
+    initialize();
+  }
 
-    void loop() {
-      if(SWAgent.isClicked() && SWAgent.getLongPressDeltaTime() < 3000) {
-        if(pause) {
-          // restart
-          TimerAgent.restart();
-        }else {
-          // pause
-          TimerAgent.pause();
+  void loop() {
+    updateState();
+    draw();
+  }
+
+  void initialize() {
+    // reset timer
+    TimerAgent.stop();
+    // fetch config
+    // apply config
+    // display.setRotation(3);
+    // initialize registers
+    state = State::pause;
+    // setup all components
+    //   setup menu
+  }
+  
+  #define HOLD_TO_PAUSE_TIME 1000
+  void updateState() {
+    // check button input
+    if(SWAgent.isClicked()) {
+      // is play mode
+      if(state == State::play) {
+        // is long press
+        if(SWAgent.getLongPressDeltaTime() >= HOLD_TO_PAUSE_TIME) {
+          // set state to pause
+          state = State::pause;
+        }else {  // if is short click
+          // set state to stop
+          state = State::stop;
         }
-        pause = !pause;
-      }
-      if(s >= 5) {
-        TimerAgent.stop();
-        __exit = true;
-        return ;
-      }
-      display.invertDisplay(pause);
-
-      display.setTextSize(2);  // Draw 2X-scale text // 6,8 "12,16"
-      display.setTextColor(SSD1306_WHITE);
-      display.setCursor(12+count, display.height()/2 - 8);
-      static char buffer[12] = "";
-      sprintf(buffer, "%d:%d:%d", m, s, ms);
-      display.print(buffer);
-
-      if(SWAgent.isHolding()) {
-        display.setTextSize(1);  // Draw 2X-scale text // 6,8
-        display.setTextColor(SSD1306_WHITE);
-        display.setCursor(2, 1);
-        display.print(SWAgent.getLongPressDeltaTime());
-        display.drawRoundRect(10, 2, SWAgent.getLongPressDeltaTime()/3000.0 * 108, display.height()-4, 5, SSD1306_WHITE);
+        TimerAgent.pause();
+      }else {  // is pause or stop state
+        // if is pause state
+        if(state == State::pause) {
+          // set timer  resume
+          TimerAgent.resume();
+        }else {  // if is stop state
+          // set timer reset
+          TimerAgent.restart();
+        }
+        // set to play state
+        state = State::play;
       }
     }
+  }
+
+  void draw() {
+    // draw main
+    drawMain();
+    // draw all components
+    drawMenu();
+    // draw all debug components
+    drawDebugRect();
+  }
+  void drawMain() {
+    // draw time
+    static char timeStrBuffer[12] = "";  // xxx:xx:xxx
+    display.setTextColor(SSD1306_WHITE);
+
+    if(display.getRotation() == 3) {
+      display.setTextSize(2);  // "12,16"
+      sprintf(timeStrBuffer, "%d", m);
+      display.setCursor( (display.width()-strlen(timeStrBuffer)*12)/2.0 , (display.height()-3*16)/2.0);
+      display.print(timeStrBuffer);
+      sprintf(timeStrBuffer, "%d", s);
+      display.setCursor( (display.width()-strlen(timeStrBuffer)*12)/2.0 , (display.height()-3*16)/2.0+16);
+      display.print(timeStrBuffer);
+      sprintf(timeStrBuffer, "%d", ms);
+      display.setCursor( (display.width()-strlen(timeStrBuffer)*12)/2.0 , (display.height()-3*16)/2.0+16*2);
+      display.print(timeStrBuffer);
+    }else {
+      display.setTextSize(2);  // Draw 2X-scale text // 6,8 "12,16"
+      sprintf(timeStrBuffer, "%d:%d:%03d", m, s, ms);
+      display.setCursor( (display.width()-strlen(timeStrBuffer)*12)/2.0 , (display.height()-16)/2.0);
+      display.print(timeStrBuffer);
+    }
+
+    // set color invert
+    display.invertDisplay(state == State::stop);
+    // draw pause symbol
+    if(state == State::pause) {
+      const uint8_t margin = 5; const uint8_t pauseSize = 10;
+      display.fillRect(0+margin, display.height()-margin - pauseSize, pauseSize, pauseSize, SSD1306_WHITE);
+      display.fillRect(0+margin + (pauseSize*0.8/2), display.height()-margin - pauseSize, pauseSize*0.2, pauseSize, SSD1306_BLACK);
+    }
+  }
+  void drawMenu() {
+
+  }
+  void drawDebugRect() {
+    if(SWAgent.isHolding()) {
+      display.drawRoundRect(10, 2, 
+        min((SWAgent.getLongPressDeltaTime()/(float)HOLD_TO_PAUSE_TIME), 1)*(display.width()-20), display.height()-4, 
+        5, SSD1306_WHITE);
+    }
+  }
+
+
 };
   
 class Pomodoro: public AppInterface {
@@ -364,11 +433,11 @@ void draw() {
 void initialize() {
   // initialize all status
   TimerAgent.stop();
-  countDownFrom = getConfig().pomoTime;
+  Config config = getConfig();
+  countDownFrom = config.pomoTime;
   isBreak = false;  isPause = true;  isCurrentOver = false;
   nPomo = 0;
   // load config
-  Config config = getConfig();
   display.setRotation(config.displayRotation);
   // set all components
   setMenuItems();
